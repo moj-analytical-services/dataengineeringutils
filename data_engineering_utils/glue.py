@@ -1,30 +1,28 @@
 import pandas as pd 
 import numpy as np
 import boto3
+import data_engineering_utils.meta as meta_utils
+
 from io import StringIO
 glue_client = boto3.client('glue', 'eu-west-1')
 s3_resource = boto3.resource('s3')
 
-# Super basic atm assumes everything that isn't an int or double as a string
-def get_db_col_types_from_df(df) :
-    col_names = list(df)
-    table_col_meta = []
-    for col in col_names :
-        if df[col].dtype == np.int64 :
-            table_col_meta.append({'Name' : col, 'Type' : 'bigint'})
-        elif df[col].dtype == np.float :
-            table_col_meta.append({'Name' : col, 'Type' : 'double'})
-        else :
-            table_col_meta.append({'Name' : col, 'Type' : 'string'})
-    
-    return(table_col_meta)
+# Creates glue table spec from meta data
+def get_glue_table_spec_from_meta(meta_object, template_type = 'csv') :
+    table_spec = get_table_definition_template(table_name = meta_object['table_name'],
+        table_desc = meta_object['table_description'],
+        table_col_meta = meta_object['columns'],
+        location = 's3://' + meta_object['bucket'] + '/' + meta_object['table_name'],
+        template_type = template_type)
 
-# If overides is not supplied assumes all columns are strings
+    return table_spec
+
+
 def get_table_col_meta_template(column_names, overrides = None) :
     if overrides is None :
         overrides = []
     
-    base_types = get_base_data_types()
+    base_types = meta_utils.get_base_data_types()
     
     keys = list(overrides)
 
@@ -40,9 +38,6 @@ def get_table_col_meta_template(column_names, overrides = None) :
                          'Type' : 'string' if c not in keys else overrides[c]})
     return(col_meta)
 
-# Get a list of accepted base datatypes for glue table definitions
-def get_base_data_types() :
-    return base_types ['boolean', 'bigint', 'double', 'string', 'timestamp', 'date']
 
 # Save a dataframe to an S3 bucket (removes headers)
 def df_to_csv_s3(df, bucket, path):
@@ -171,13 +166,4 @@ def take_script_and_run_job(input_script_path, output_script_path, role, job_nam
     
     response = glue_client.create_job(**job)
     response = glue_client.start_job_run(JobName=job_name)
-
-# Read first line of csv and return a list
-def get_csv_header(file_path, convert_to_lower = False) :
-    with open(file_path) as f:
-        line = f.readline()
-        column_names = line.rstrip().split(",")
-        if convert_to_lower :
-            column_names = [c.lower() for c in columns]
-    return column_names
 
