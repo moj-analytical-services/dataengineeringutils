@@ -37,11 +37,11 @@ def Column_meta(name, data_type = None, description = None) :
 # Constructor for table meta
 def Table_metadata(table_name, bucket, columns, table_description = None) :
     
-    if table_desc is None :
-        table_desc = ""
+    if table_description is None :
+        table_description = ""
     
     table_meta = {"table_name" : table_name,
-                  "table_description": table_desc,
+                  "table_description": table_description,
                   "bucket" : bucket, 
                   "columns": columns
     }
@@ -49,7 +49,7 @@ def Table_metadata(table_name, bucket, columns, table_description = None) :
 
 # Get a list of accepted base datatypes for glue table definitions
 def get_base_data_types() :
-    return base_types ['boolean', 'bigint', 'double', 'string', 'timestamp', 'date']
+    return ['boolean', 'bigint', 'double', 'string', 'timestamp', 'date']
 
 def create_columns_meta(column_names, data_type_overrides = None, description_overrides = None) :
     if data_type_overrides is None :
@@ -62,6 +62,7 @@ def create_columns_meta(column_names, data_type_overrides = None, description_ov
     
     data_type_keys = list(data_type_overrides)
     data_desc_keys = list(description_overrides)
+
     # Error checking
     for dtk in data_type_keys :
         if data_type_overrides[dtk] not in base_types :
@@ -70,9 +71,10 @@ def create_columns_meta(column_names, data_type_overrides = None, description_ov
     # Create meta data
     col_meta = []
     for c in column_names :
-        Column_meta(name = c,
-            data_type = None if c not in data_type_keys else data_type_keys[c],
-            description = None if c not in data_type_keys else data_desc_keys[c])
+        col_meta.append(Column_meta(name = c,
+            data_type = None if c not in data_type_keys else data_type_overrides[c],
+            description = None if c not in data_desc_keys else description_overrides[c]))
+    
     return(col_meta)
 
 

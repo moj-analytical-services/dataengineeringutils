@@ -17,5 +17,5 @@ def get_csv_header(file_path, convert_to_lower = False) :
         line = f.readline()
         column_names = line.rstrip().split(",")
         if convert_to_lower :
-            column_names = [c.lower() for c in columns]
+            column_names = [c.lower() for c in column_names]
     return column_names

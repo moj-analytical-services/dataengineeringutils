@@ -126,7 +126,7 @@ def create_database(db_name, db_description) :
         }
     }
     try : 
-        glue_client.delete_database(Name="kariktest_db")
+        glue_client.delete_database(Name=db_name)
     except :
         pass
 
