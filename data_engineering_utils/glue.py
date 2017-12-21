@@ -42,7 +42,7 @@ def get_table_col_meta_template(colnames, overrides = None) :
 
 # Get a list of accepted base datatypes for glue table definitions
 def get_base_data_types() :
-    return base_types = ['boolean', 'bigint', 'double', 'string', 'timestamp', 'date']
+    return base_types ['boolean', 'bigint', 'double', 'string', 'timestamp', 'date']
 
 # Save a dataframe to an S3 bucket (removes headers)
 def df_to_csv_s3(df, bucket, path, header=False, index=False):
