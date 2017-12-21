@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import boto3
 from io import StringIO
-glue_client = boto3.client('glue', 'eu-east-1')
+glue_client = boto3.client('glue', 'eu-west-1')
 s3_resource = boto3.resource('s3')
 
 # Super basic atm assumes everything that isn't an int or double as a string
