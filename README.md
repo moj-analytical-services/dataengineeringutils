@@ -10,4 +10,4 @@ Warining: This package has the following dependencies:
 - io
 - boto3
 
-This package doesn't list its package denpencies because I found errors with io when installing via pip so I have left it blank for now ¯\_(ツ)_/¯
+This package doesn't list its package denpencies because I found errors with io when installing via pip so I have left it blank for now ¯\\_(ツ)_/¯
