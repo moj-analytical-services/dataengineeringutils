@@ -70,8 +70,8 @@ def create_columns_meta(column_names, data_type_overrides = None, description_ov
     col_meta = []
     for c in column_names :
         Column_meta(name = c,
-            data_type = None if c is not in data_type_keys else data_type_keys[c],
-            description = None if c is not in data_type_keys else data_desc_keys[c])
+            data_type = None if c not in data_type_keys else data_type_keys[c],
+            description = None if c not in data_type_keys else data_desc_keys[c])
     return(col_meta)
 
 
