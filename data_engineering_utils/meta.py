@@ -82,11 +82,11 @@ def get_col_types_from_df(df) :
     table_col_meta = []
     for col in col_names :
         if df[col].dtype == np.int64 :
-            table_col_meta.append(meta_utils.Column_meta(name = col, data_type = 'bigint', description = ''))
+            table_col_meta.append(Column_meta(name = col, data_type = 'bigint', description = ''))
         elif df[col].dtype == np.float :
-            table_col_meta.append(meta_utils.Column_meta(name = col, data_type = 'double', description = ''))
+            table_col_meta.append(Column_meta(name = col, data_type = 'double', description = ''))
         else :
-            table_col_meta.append(meta_utils.Column_meta(name = col, data_type = 'string', description = ''))
+            table_col_meta.append(Column_meta(name = col, data_type = 'string', description = ''))
     
     return(table_col_meta)
 
