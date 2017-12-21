@@ -20,7 +20,7 @@ def get_db_col_types_from_df(df) :
     return(table_col_meta)
 
 # If overides is not supplied assumes all columns are strings
-def get_table_col_meta_template(colnames, overrides = None) :
+def get_table_col_meta_template(column_names, overrides = None) :
     if overrides is None :
         overrides = []
     
@@ -35,7 +35,7 @@ def get_table_col_meta_template(colnames, overrides = None) :
     
     # Create meta data
     col_meta = []
-    for c in colnames :
+    for c in column_names :
         col_meta.append({'Name' : c,
                          'Type' : 'string' if c not in keys else overrides[c]})
     return(col_meta)
@@ -45,7 +45,7 @@ def get_base_data_types() :
     return base_types ['boolean', 'bigint', 'double', 'string', 'timestamp', 'date']
 
 # Save a dataframe to an S3 bucket (removes headers)
-def df_to_csv_s3(df, bucket, path, header=False, index=False):
+def df_to_csv_s3(df, bucket, path):
     csv_buffer = StringIO()
     
     #Skip headers is necessary for now - see here: https://twitter.com/esh/status/811396849756041217
@@ -57,7 +57,7 @@ def df_to_csv_s3(df, bucket, path, header=False, index=False):
 # Returns a table schema definition for csv or orc
 def get_table_definition_template(table_name = '', table_desc = '', table_col_meta = [], location = '', template_type = 'csv') :
     if template_type == 'csv' :
-        table_def = {
+        table_spec = {
             'Description': table_desc,
             'Name': table_name,
             'PartitionKeys': [],
@@ -97,7 +97,7 @@ def get_table_definition_template(table_name = '', table_desc = '', table_col_me
         }
     
     elif template_type == 'orc':
-        table_def = {
+        table_spec = {
             'Name': table_name,
             'Owner': 'owner',
             'PartitionKeys': [],
@@ -119,26 +119,40 @@ def get_table_definition_template(table_name = '', table_desc = '', table_col_me
             'TableType': 'EXTERNAL_TABLE',
         }
     else :
-        table_def = None
+        table_spec = None
         
-    return(table_def)
+    return(table_spec)
+
+def create_database(db_name, db_description) :
+    db = {
+        "DatabaseInput": {
+            "Description": db_description,
+            "Name": db_name,
+        }
+    }
+    try : 
+        glue_client.delete_database(Name="kariktest_db")
+    except :
+        pass
+
+    response = glue_client.create_database(**db)
 
 # Add table to database in glue
-def create_table_from_def(dbname, tablename, spec):
-    try:
+def create_table_from_def(db_name, table_name, table_spec) :
+    try :
         glue_client.delete_table(
-            DatabaseName=dbname,
-            Name=tablename
+            DatabaseName=db_name,
+            Name=table_name
         )
-    except:
+    except :
         pass
 
     response = glue_client.create_table(
-        DatabaseName=dbname,
-        TableInput=spec)
+        DatabaseName=db_name,
+        TableInput=table_spec)
 
 # Does what it says on the tin
-def take_script_and_run_job(input_script_path, output_script_path, role, job_name, script_bucket = "alpha-dag-data-engineers-raw", tempdir = "s3://alpha-dag-data-engineers-raw/athena_out"):
+def take_script_and_run_job(input_script_path, output_script_path, role, job_name, script_bucket = "alpha-dag-data-engineers-raw", temp_dir = "s3://alpha-dag-data-engineers-raw/athena_out"):
 
     s3_f = s3_resource.Object(script_bucket, output_script_path)
     response= s3_f.put(Body=open(input_script_path, "rb"))
@@ -148,7 +162,7 @@ def take_script_and_run_job(input_script_path, output_script_path, role, job_nam
       'Name': 'glueetl',
       'ScriptLocation': 's3://{}/{}'.format(script_bucket, output_script_path)
      },
-     'DefaultArguments': {'--TempDir': tempdir,
+     'DefaultArguments': {'--TempDir': temp_dir,
       '--job-bookmark-option': 'job-bookmark-disable'},
      'ExecutionProperty': {'MaxConcurrentRuns': 1},
      'MaxRetries': 0,
@@ -158,4 +172,12 @@ def take_script_and_run_job(input_script_path, output_script_path, role, job_nam
     response = glue_client.create_job(**job)
     response = glue_client.start_job_run(JobName=job_name)
 
+# Read first line of csv and return a list
+def get_csv_header(file_path, convert_to_lower = False) :
+    with open(file_path) as f:
+        line = f.readline()
+        column_names = line.rstrip().split(",")
+        if convert_to_lower :
+            column_names = [c.lower() for c in columns]
+    return column_names
 
