@@ -1,0 +1,117 @@
+{
+    "Table": {
+        "Name": "random_data_orc",
+        "Owner": "owner",
+        "CreateTime": "2017-12-22 18:44:34+00:00",
+        "UpdateTime": "2017-12-22 18:44:34+00:00",
+        "LastAccessTime": "2017-12-22 18:44:34+00:00",
+        "Retention": 0,
+        "StorageDescriptor": {
+            "Columns": [
+                {
+                    "Name": "first_name",
+                    "Type": "string"
+                },
+                {
+                    "Name": "surname",
+                    "Type": "string"
+                },
+                {
+                    "Name": "dob",
+                    "Type": "string"
+                },
+                {
+                    "Name": "city",
+                    "Type": "string"
+                },
+                {
+                    "Name": "email",
+                    "Type": "string"
+                },
+                {
+                    "Name": "lat",
+                    "Type": "double"
+                },
+                {
+                    "Name": "lng",
+                    "Type": "double"
+                },
+                {
+                    "Name": "mydatetime",
+                    "Type": "string"
+                },
+                {
+                    "Name": "myint",
+                    "Type": "bigint"
+                },
+                {
+                    "Name": "myfloat",
+                    "Type": "double"
+                },
+                {
+                    "Name": "myboolean",
+                    "Type": "boolean"
+                },
+                {
+                    "Name": "year",
+                    "Type": "string"
+                },
+                {
+                    "Name": "month",
+                    "Type": "string"
+                }
+            ],
+            "Location": "s3://alpha-dag-data-engineers-staging/random_data_orc/",
+            "InputFormat": "org.apache.hadoop.hive.ql.io.orc.OrcInputFormat",
+            "OutputFormat": "org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat",
+            "Compressed": false,
+            "NumberOfBuckets": -1,
+            "SerdeInfo": {
+                "SerializationLibrary": "org.apache.hadoop.hive.ql.io.orc.OrcSerde",
+                "Parameters": {}
+            },
+            "BucketColumns": [],
+            "SortColumns": [],
+            "Parameters": {
+                "CrawlerSchemaDeserializerVersion": "1.0",
+                "CrawlerSchemaSerializerVersion": "1.0",
+                "UPDATED_BY_CRAWLER": "randomdata_orc",
+                "averageRecordSize": "64",
+                "classification": "orc",
+                "compressionType": "none",
+                "objectCount": "1",
+                "recordCount": "1000",
+                "sizeKey": "66869",
+                "typeOfData": "file"
+            },
+            "StoredAsSubDirectories": false
+        },
+        "PartitionKeys": [],
+        "TableType": "EXTERNAL_TABLE",
+        "Parameters": {
+            "CrawlerSchemaDeserializerVersion": "1.0",
+            "CrawlerSchemaSerializerVersion": "1.0",
+            "UPDATED_BY_CRAWLER": "randomdata_orc",
+            "averageRecordSize": "64",
+            "classification": "orc",
+            "compressionType": "none",
+            "objectCount": "1",
+            "recordCount": "1000",
+            "sizeKey": "66869",
+            "typeOfData": "file"
+        },
+        "CreatedBy": "arn:aws:sts::593291632749:assumed-role/alpha_user_robinl/AWS-Crawler"
+    },
+    "ResponseMetadata": {
+        "RequestId": "c6191c4f-e74a-11e7-b56e-49938112d67d",
+        "HTTPStatusCode": 200,
+        "HTTPHeaders": {
+            "date": "Fri, 22 Dec 2017 19:03:19 GMT",
+            "content-type": "application/x-amz-json-1.1",
+            "content-length": "1724",
+            "connection": "keep-alive",
+            "x-amzn-requestid": "c6191c4f-e74a-11e7-b56e-49938112d67d"
+        },
+        "RetryAttempts": 0
+    }
+}

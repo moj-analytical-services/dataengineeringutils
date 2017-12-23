@@ -1,7 +1,12 @@
-import pandas as pd 
+import pandas as pd
 import numpy as np
 import boto3
-import data_engineering_utils.meta as meta_utils
+import json
+import pkg_resources
+import dataengineeringutils.meta as meta_utils
+from dataengineeringutils.datatypes import translate_metadata_type_to_glue_type
+from dataengineeringutils.utils import dict_merge
+from dataengineeringutils.basic import read_json
 
 from io import StringIO
 glue_client = boto3.client('glue', 'eu-west-1')
@@ -21,16 +26,16 @@ def get_glue_table_spec_from_meta(meta_object, template_type = 'csv') :
 def get_table_col_meta_template(column_names, overrides = None) :
     if overrides is None :
         overrides = []
-    
+
     base_types = meta_utils.get_base_data_types()
-    
+
     keys = list(overrides)
 
     # Error checking
     for k in keys :
         if overrides[k] not in base_types :
             raise ValueError("Column name: \"{}\" in input overrides: has an invalid datatype. Valid datatypes are {}".format(k,", ".join(base_types)))
-    
+
     # Create meta data
     col_meta = []
     for c in column_names :
@@ -42,81 +47,38 @@ def get_table_col_meta_template(column_names, overrides = None) :
 # Save a dataframe to an S3 bucket (removes headers)
 def df_to_csv_s3(df, bucket, path):
     csv_buffer = StringIO()
-    
+
     #Skip headers is necessary for now - see here: https://twitter.com/esh/status/811396849756041217
     df.to_csv(csv_buffer, index=False, header=False)
-    
+
     s3_f = s3_resource.Object(bucket, path)
     response = s3_f.put(Body=csv_buffer.getvalue())
 
-# Returns a table schema definition for csv or orc
-def get_table_definition_template(table_name = '', table_desc = '', table_col_meta = [], location = '', template_type = 'csv') :
-    if template_type == 'csv' :
-        table_spec = {
-            'Description': table_desc,
-            'Name': table_name,
-            'PartitionKeys': [],
-            'Owner': "hadoop",
-            'Retention': 0,
-            'Parameters': {
-                'EXTERNAL': 'TRUE',
-                'classification': 'csv',
-                'delimiter': ',',
-                'compressionType': 'none'
-            },
-            'StorageDescriptor': {
-                'BucketColumns': [],
-                'Columns': table_col_meta,
-                 'Compressed': False,
-                 'InputFormat': 'org.apache.hadoop.mapred.TextInputFormat',
-                 'Location': location,
-                 'NumberOfBuckets': -1,
-                 'OutputFormat': 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat',
-                 'Parameters': {},
-                 'SerdeInfo': {
-                     'Parameters': {
-                         'field.delim': ',',
-                         'serialization.format': ','
-                     },
-                     'SerializationLibrary': 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
-                 },
-                 'SkewedInfo': {
-                     'SkewedColumnNames': [],
-                     'SkewedColumnValueLocationMaps': {},
-                     'SkewedColumnValues': []
-                 },
-                 'SortColumns': [],
-                 'StoredAsSubDirectories': False
-            },
-            'TableType': 'EXTERNAL_TABLE'
+
+def get_table_definition_template(template_type = 'csv', **kwargs):
+    """Get a definition template that can be used with Glue for the various template types
+
+    Args:
+        template_type: Allowed values are {'csv', 'parquet', 'avro', 'orc'}
+        **kwargs: Arbitrary keyword arguments which will be added to the template
+    """
+    base_io = pkg_resources.resource_stream(__name__, "specs/base.json")
+    base = json.load(base_io)
+
+    conversion = {
+        "avro": pkg_resources.resource_stream(__name__, "specs/avro_specific.json"),
+        "csv": pkg_resources.resource_stream(__name__, "specs/csv_specific.json"),
+        "orc": pkg_resources.resource_stream(__name__, "specs/orc_specific.json"),
+        "par": pkg_resources.resource_stream(__name__, "specs/par_specific.json"),
+        "parquet": pkg_resources.resource_stream(__name__, "specs/par_specific.json")
         }
-    
-    elif template_type == 'orc':
-        table_spec = {
-            'Name': table_name,
-            'Owner': 'owner',
-            'PartitionKeys': [],
-            'Retention': 0,
-            'StorageDescriptor': {
-                'BucketColumns': [],
-                'Columns': table_col_meta,
-                'Compressed': False,
-                'InputFormat': 'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat',
-                'NumberOfBuckets': -1,
-                'OutputFormat': 'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat',
-                'SerdeInfo': {
-                    'Parameters': {},
-                    'SerializationLibrary': 'org.apache.hadoop.hive.ql.io.orc.OrcSerde'
-                },
-                'SortColumns': [],
-                'StoredAsSubDirectories': False
-            },
-            'TableType': 'EXTERNAL_TABLE',
-        }
-    else :
-        table_spec = None
-        
-    return(table_spec)
+
+    specific_io = conversion[template_type]
+    specific = json.load(specific_io)
+    dict_merge(base, specific)
+    dict_merge(base, kwargs)
+    return base
+
 
 def create_database(db_name, db_description) :
     db = {
@@ -125,7 +87,7 @@ def create_database(db_name, db_description) :
             "Name": db_name,
         }
     }
-    try : 
+    try :
         glue_client.delete_database(Name=db_name)
     except :
         pass
@@ -163,7 +125,17 @@ def take_script_and_run_job(input_script_path, output_script_path, role, job_nam
      'MaxRetries': 0,
      'Name': job_name,
      'Role': role}
-    
+
     response = glue_client.create_job(**job)
     response = glue_client.start_job_run(JobName=job_name)
 
+def get_glue_column_spec_from_metadata(metadata):
+    columns = metadata["metadata"]["columns"]
+    glue_columns = []
+    for c in columns:
+        new_c = {}
+        new_c["Name"] = c["name"]
+        new_c["Comment"] = c["description"]
+        new_c["Type"] = translate_metadata_type_to_glue_type(c["type"])
+        glue_columns.append(new_c)
+    return glue_columns

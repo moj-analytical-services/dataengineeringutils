@@ -1,0 +1,7 @@
+metadata,glue
+character,string
+int,int
+float,double
+boolean,boolean
+datetime,timestamp
+date,date
