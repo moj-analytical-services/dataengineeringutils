@@ -1,0 +1,119 @@
+{
+    "Table": {
+        "Name": "random_data_par",
+        "Owner": "owner",
+        "CreateTime": "2017-12-22 18:52:24+00:00",
+        "UpdateTime": "2017-12-22 18:52:24+00:00",
+        "LastAccessTime": "2017-12-22 18:52:24+00:00",
+        "Retention": 0,
+        "StorageDescriptor": {
+            "Columns": [
+                {
+                    "Name": "first_name",
+                    "Type": "string"
+                },
+                {
+                    "Name": "surname",
+                    "Type": "string"
+                },
+                {
+                    "Name": "dob",
+                    "Type": "string"
+                },
+                {
+                    "Name": "city",
+                    "Type": "string"
+                },
+                {
+                    "Name": "email",
+                    "Type": "string"
+                },
+                {
+                    "Name": "lat",
+                    "Type": "double"
+                },
+                {
+                    "Name": "lng",
+                    "Type": "double"
+                },
+                {
+                    "Name": "mydatetime",
+                    "Type": "string"
+                },
+                {
+                    "Name": "myint",
+                    "Type": "bigint"
+                },
+                {
+                    "Name": "myfloat",
+                    "Type": "double"
+                },
+                {
+                    "Name": "myboolean",
+                    "Type": "boolean"
+                },
+                {
+                    "Name": "year",
+                    "Type": "string"
+                },
+                {
+                    "Name": "month",
+                    "Type": "string"
+                }
+            ],
+            "Location": "s3://alpha-dag-data-engineers-staging/random_data_par/",
+            "InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+            "OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+            "Compressed": false,
+            "NumberOfBuckets": -1,
+            "SerdeInfo": {
+                "SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
+                "Parameters": {
+                    "serialization.format": "1"
+                }
+            },
+            "BucketColumns": [],
+            "SortColumns": [],
+            "Parameters": {
+                "CrawlerSchemaDeserializerVersion": "1.0",
+                "CrawlerSchemaSerializerVersion": "1.0",
+                "UPDATED_BY_CRAWLER": "randomdata_par",
+                "averageRecordSize": "98",
+                "classification": "parquet",
+                "compressionType": "none",
+                "objectCount": "4",
+                "recordCount": "4000",
+                "sizeKey": "144917",
+                "typeOfData": "file"
+            },
+            "StoredAsSubDirectories": false
+        },
+        "PartitionKeys": [],
+        "TableType": "EXTERNAL_TABLE",
+        "Parameters": {
+            "CrawlerSchemaDeserializerVersion": "1.0",
+            "CrawlerSchemaSerializerVersion": "1.0",
+            "UPDATED_BY_CRAWLER": "randomdata_par",
+            "averageRecordSize": "98",
+            "classification": "parquet",
+            "compressionType": "none",
+            "objectCount": "4",
+            "recordCount": "4000",
+            "sizeKey": "144917",
+            "typeOfData": "file"
+        },
+        "CreatedBy": "arn:aws:sts::593291632749:assumed-role/alpha_user_robinl/AWS-Crawler"
+    },
+    "ResponseMetadata": {
+        "RequestId": "c5fc45d8-e74a-11e7-95f6-7321dbb654df",
+        "HTTPStatusCode": 200,
+        "HTTPHeaders": {
+            "date": "Fri, 22 Dec 2017 19:03:19 GMT",
+            "content-type": "application/x-amz-json-1.1",
+            "content-length": "1806",
+            "connection": "keep-alive",
+            "x-amzn-requestid": "c5fc45d8-e74a-11e7-95f6-7321dbb654df"
+        },
+        "RetryAttempts": 0
+    }
+}
