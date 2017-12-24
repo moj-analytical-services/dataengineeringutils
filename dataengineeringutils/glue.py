@@ -68,10 +68,11 @@ def overwrite_or_create_database(db_name, db_description=""):
 
     try:
         glue_client.delete_database(Name=db_name)
-        log.debug("Creating database: {}".format(db_name))
+        log.debug("Deleting database: {}".format(db_name))
     except :
         pass
 
+    log.debug("Creating database: {}".format(db_name))
     response = glue_client.create_database(**db)
 
 # Add table to database in glue
