@@ -14,44 +14,14 @@ from io import StringIO
 glue_client = boto3.client('glue', 'eu-west-1')
 s3_resource = boto3.resource('s3')
 
-# Creates glue table spec from meta data
-def get_glue_table_spec_from_meta(meta_object, template_type = 'csv') :
-    table_spec = get_table_definition_template(table_name = meta_object['table_name'],
-        table_desc = meta_object['table_description'],
-        table_col_meta = meta_object['columns'],
-        location = 's3://' + meta_object['bucket'] + '/' + meta_object['table_name'],
-        template_type = template_type)
-
-    return table_spec
-
-
-def get_table_col_meta_template(column_names, overrides = None) :
-    if overrides is None :
-        overrides = []
-
-    base_types = meta_utils.get_base_data_types()
-
-    keys = list(overrides)
-
-    # Error checking
-    for k in keys :
-        if overrides[k] not in base_types :
-            raise ValueError("Column name: \"{}\" in input overrides: has an invalid datatype. Valid datatypes are {}".format(k,", ".join(base_types)))
-
-    # Create meta data
-    col_meta = []
-    for c in column_names :
-        col_meta.append({'Name' : c,
-                         'Type' : 'string' if c not in keys else overrides[c]})
-    return(col_meta)
-
-
-# Save a dataframe to an S3 bucket (removes headers)
-def df_to_csv_s3(df, bucket, path):
+def df_to_csv_s3(df, bucket, path, index=False, header=False):
+    """
+    Takes a pandas dataframe and writes out to s3
+    """
     csv_buffer = StringIO()
 
     #Skip headers is necessary for now - see here: https://twitter.com/esh/status/811396849756041217
-    df.to_csv(csv_buffer, index=False, header=False)
+    df.to_csv(csv_buffer, index=index, header=header)
 
     s3_f = s3_resource.Object(bucket, path)
     response = s3_f.put(Body=csv_buffer.getvalue())
@@ -82,14 +52,19 @@ def get_table_definition_template(template_type = 'csv', **kwargs):
     return base
 
 
-def create_database(db_name, db_description="") :
+def overwrite_or_create_database(db_name, db_description=""):
+    """
+    Creates a database in Glue.  If it exists, delete it
+    """
     db = {
         "DatabaseInput": {
             "Description": db_description,
             "Name": db_name,
         }
     }
-    try :
+
+
+    try:
         glue_client.delete_database(Name=db_name)
     except :
         pass
@@ -179,7 +154,7 @@ def populate_glue_catalogue_from_metadata(table_metadata, db_metadata, check_exi
         try:
             glue_client.get_database(Name=database_name)
         except glue_client.exceptions.EntityNotFoundException:
-            create_database(database_name, db_metadata["description"])
+            overwrite_or_create_database(database_name, db_metadata["description"])
 
         try:
             glue_client.delete_table(DatabaseName=database_name, Name=table_name)
@@ -205,7 +180,7 @@ def metadata_folder_to_database(folder_path, delete_db = True):
             glue_client.delete_database(Name=database_name)
         except glue_client.exceptions.EntityNotFoundException:
             pass
-        create_database(database_name, db_metadata["description"])
+        overwrite_or_create_database(database_name, db_metadata["description"])
 
     else:
         raise ValueError("database.json not found in metadata folder")
