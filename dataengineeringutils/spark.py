@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import pyspark.sql.types
 
-from dataengineeringutils.basic import read_json
+from dataengineeringutils.utils import read_json
 
 from dataengineeringutils.datatypes import translate_metadata_type_to_type
 

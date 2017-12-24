@@ -7,8 +7,7 @@ import json
 import pkg_resources
 import dataengineeringutils.meta as meta_utils
 from dataengineeringutils.datatypes import translate_metadata_type_to_type
-from dataengineeringutils.utils import dict_merge
-from dataengineeringutils.basic import read_json
+from dataengineeringutils.utils import dict_merge, read_json
 
 from io import StringIO
 glue_client = boto3.client('glue', 'eu-west-1')
