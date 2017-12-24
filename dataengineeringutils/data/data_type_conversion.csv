@@ -1,7 +1,7 @@
-metadata,glue
-character,string
-int,int
-float,double
-boolean,boolean
-datetime,timestamp
-date,date
+metadata,glue,spark
+character,string,StringType
+int,int,IntegerType
+float,double,FloatType
+boolean,boolean,BooleanType
+datetime,timestamp,TimestampType
+date,date,DateType

@@ -6,13 +6,16 @@ import boto3
 import json
 import pkg_resources
 import dataengineeringutils.meta as meta_utils
-from dataengineeringutils.datatypes import translate_metadata_type_to_glue_type
+from dataengineeringutils.datatypes import translate_metadata_type_to_type
 from dataengineeringutils.utils import dict_merge
 from dataengineeringutils.basic import read_json
 
 from io import StringIO
 glue_client = boto3.client('glue', 'eu-west-1')
 s3_resource = boto3.resource('s3')
+
+import logging
+log = logging.getLogger(__name__)
 
 def df_to_csv_s3(df, bucket, path, index=False, header=False):
     """
@@ -63,9 +66,9 @@ def overwrite_or_create_database(db_name, db_description=""):
         }
     }
 
-
     try:
         glue_client.delete_database(Name=db_name)
+        log.debug("Creating database: {}".format(db_name))
     except :
         pass
 
@@ -117,7 +120,7 @@ def get_glue_column_spec_from_metadata(metadata):
         new_c = {}
         new_c["Name"] = c["name"]
         new_c["Comment"] = c["description"]
-        new_c["Type"] = translate_metadata_type_to_glue_type(c["type"])
+        new_c["Type"] = translate_metadata_type_to_type(c["type"], "glue")
         glue_columns.append(new_c)
     return glue_columns
 
