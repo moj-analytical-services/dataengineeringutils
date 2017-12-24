@@ -1,4 +1,6 @@
 import pandas as pd
+import os
+import re
 import numpy as np
 import boto3
 import json
@@ -80,7 +82,7 @@ def get_table_definition_template(template_type = 'csv', **kwargs):
     return base
 
 
-def create_database(db_name, db_description) :
+def create_database(db_name, db_description="") :
     db = {
         "DatabaseInput": {
             "Description": db_description,
@@ -95,7 +97,7 @@ def create_database(db_name, db_description) :
     response = glue_client.create_database(**db)
 
 # Add table to database in glue
-def create_table_from_def(db_name, table_name, table_spec) :
+def create_table_in_glue_from_def(db_name, table_name, table_spec) :
     try :
         glue_client.delete_table(
             DatabaseName=db_name,
@@ -130,7 +132,11 @@ def take_script_and_run_job(input_script_path, output_script_path, role, job_nam
     response = glue_client.start_job_run(JobName=job_name)
 
 def get_glue_column_spec_from_metadata(metadata):
-    columns = metadata["metadata"]["columns"]
+    """
+    Use metadata to create a column spec which will fit into the Glue table template
+    """
+    columns = metadata["columns"]
+    columns.sort(key=lambda x: x["column_number"])
     glue_columns = []
     for c in columns:
         new_c = {}
@@ -139,3 +145,74 @@ def get_glue_column_spec_from_metadata(metadata):
         new_c["Type"] = translate_metadata_type_to_glue_type(c["type"])
         glue_columns.append(new_c)
     return glue_columns
+
+
+def metadata_to_glue_table_definition(metadata):
+    """
+    Use metadata in json format to create a table definition
+    """
+
+    template_type = metadata["data_format"]
+    table_definition = get_table_definition_template(template_type)
+    column_spec = get_glue_column_spec_from_metadata(metadata)
+
+    table_definition["Name"] = metadata["table_name"]
+    table_definition["Description"] = metadata["table_desc"]
+
+    table_definition['StorageDescriptor']['Columns'] = column_spec
+    table_definition['StorageDescriptor']["Location"] = metadata["location"]
+
+    return table_definition
+
+def populate_glue_catalogue_from_metadata(table_metadata, db_metadata, check_existence = True):
+    """
+    Take metadata and make requisite calls to AWS API using boto3
+    """
+
+    database_name = db_metadata["name"]
+    database_description = ["description"]
+
+    table_name = table_metadata["table_name"]
+    tbl_def = metadata_to_glue_table_definition(table_metadata)
+
+    if check_existence:
+        try:
+            glue_client.get_database(Name=database_name)
+        except glue_client.exceptions.EntityNotFoundException:
+            create_database(database_name, db_metadata["description"])
+
+        try:
+            glue_client.delete_table(DatabaseName=database_name, Name=table_name)
+        except glue_client.exceptions.EntityNotFoundException:
+            pass
+
+    return glue_client.create_table(
+        DatabaseName=database_name,
+        TableInput=tbl_def)
+
+
+def metadata_folder_to_database(folder_path, delete_db = True):
+    """
+    Take a metadata folder and build the database and all tables
+    """
+    files = os.listdir(folder_path)
+    files = set([f for f in files if re.match(".+\.json$", f)])
+
+    if "database.json" in files:
+        db_metadata = read_json(os.path.join(folder_path, "database.json"))
+        database_name = db_metadata["name"]
+        try:
+            glue_client.delete_database(Name=database_name)
+        except glue_client.exceptions.EntityNotFoundException:
+            pass
+        create_database(database_name, db_metadata["description"])
+
+    else:
+        raise ValueError("database.json not found in metadata folder")
+        return None
+
+    table_paths = files.difference({"database.json"})
+    for table_path in table_paths:
+        table_path = os.path.join(folder_path, table_path)
+        table_metadata = read_json(table_path)
+        populate_glue_catalogue_from_metadata(table_metadata, db_metadata, check_existence=False)

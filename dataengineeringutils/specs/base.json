@@ -1,5 +1,6 @@
 {
     "Name": "",
+    "Description": "",
     "Owner": "owner",
     "Retention": 0,
     "StorageDescriptor": {
@@ -22,6 +23,5 @@
     "PartitionKeys": [],
     "TableType": "EXTERNAL_TABLE",
     "Parameters": {
-    },
-    "CreatedBy": ""
+    }
 }
