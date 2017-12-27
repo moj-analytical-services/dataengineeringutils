@@ -88,9 +88,55 @@ def create_table_in_glue_from_def(db_name, table_name, table_spec) :
         DatabaseName=db_name,
         TableInput=table_spec)
 
+
+def create_glue_job_definition(**kwargs):
+
+    template_io = pkg_resources.resource_stream(__name__, "specs/glue_job.json")
+    template = json.load(template_io)
+
+    if 'Name' in kwargs:
+        template["Name"] = kwargs['Name']
+    else:
+        raise ValueError("You must give your job a name, using the Name kwarg")
+
+    if 'Role' in kwargs:
+        template["Role"] = kwargs["Role"]
+    else:
+        raise ValueError("You must give your job a role, using the Role kwarg")
+
+    if 'ScriptLocation' in kwargs:
+        template["Command"]["ScriptLocation"] = kwargs["ScriptLocation"]
+    else:
+        raise ValueError("You must assign a ScriptLocation to your job, using the ScriptLocation kwarg")
+
+    if 'TempDir' in kwargs:
+        template["DefaultArguments"]["--TempDir"] = kwargs["TempDir"]
+
+    if 'extra-files' in kwargs:
+        template["DefaultArguments"]["--extra-files"] = kwargs["extra-files"]
+
+    if 'extra-py-files' in kwargs:
+        template["DefaultArguments"]["--extra-py-files"] = kwargs["extra-py-files"]
+
+    if 'MaxConcurrentRuns' in kwargs:
+        template["ExecututionProperty"]["MaxConcurrentRuns"] = kwargs["MaxConcurrentRuns"]
+
+    if 'MaxRetries' in kwargs:
+        template["MaxRetries"] = kwargs["MaxRetries"]
+
+    if 'AllocatedCapacity' in kwargs:
+        template["AllocatedCapacity"] = kwargs["AllocatedCapacity"]
+    else:
+        template["AllocatedCapacity"] = 3
+
+    return template
+
+
 # Does what it says on the tin
 def take_script_and_run_job(input_script_path, output_script_path, role, job_name, script_bucket = "alpha-dag-data-engineers-raw", temp_dir = "s3://alpha-dag-data-engineers-raw/athena_out"):
-
+    """
+    See https://github.com/awsdocs/aws-glue-developer-guide/blob/1d6cb6174ee1f182c7da7e44f4071c6f10dfbe63/doc_source/aws-glue-programming-python-glue-arguments.md
+    """
     s3_f = s3_resource.Object(script_bucket, output_script_path)
     response= s3_f.put(Body=open(input_script_path, "rb"))
 

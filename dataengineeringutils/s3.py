@@ -23,6 +23,7 @@ def pd_write_csv_s3(df, path, *args, **kwargs):
 
 def upload_file_to_s3_from_path(input_path, bucket_name, output_path):
    s3_client.upload_file(input_path, bucket_name, output_path)
+   return "s3://{}/{}".format(bucket_name, output_path)
 
 def delete_file_from_s3(bucket_name, key):
     s3_resource.Object(bucket_name, key).delete()
