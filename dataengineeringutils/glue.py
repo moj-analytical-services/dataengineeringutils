@@ -240,3 +240,55 @@ def metadata_folder_to_database(folder_path, delete_db = True):
         table_path = os.path.join(folder_path, table_path)
         table_metadata = read_json(table_path)
         populate_glue_catalogue_from_metadata(table_metadata, db_metadata, check_existence=False)
+
+
+def glue_job_folder_to_s3(local_base, s3_base_path):
+    """
+    Take a folder structure on local disk and transfer to s3.
+
+    Folder must be formatted as follows:
+    base dir
+      job.py
+      glue_py_resources/
+        zip and python files
+      glue_resources/
+        txt, sql, json, or csv files
+    """
+
+    base_dir_listing = os.listdir(local_base)
+
+    if s3_base_path[-1:] != "/":
+        raise ValueError("s3_base_path must be a folder and therefore must end in a /")
+
+    # Check that there is at least a job.py in the given folder
+    if 'job.py' not in base_dir_listing:
+        raise ValueError("Could not find job.py in base directory provided, stopping")
+
+    # Upload job
+    bucket, bucket_folder = path_to_bucket_key(s3_base_path)
+
+    bucket_folder = bucket_folder[:-1]
+
+
+    local_job_path = os.path.join(local_base, "job.py")
+    job_path = upload_file_to_s3_from_path(local_job_path, bucket, "{}/job.py".format(bucket_folder))
+
+
+    # Upload all the .py or .zip files in resources
+    resource_listing = os.listdir(os.path.join(local_base, 'glue_resources'))
+    regex = ".+(\.sql|\.json|\.csv|\.txt)$"
+    resource_listing = [f for f in resource_listing if re.match(regex, f)]
+
+    for f in resource_listing:
+        resource_local_path = os.path.join(local_base, "glue_resources", f)
+        path = upload_file_to_s3_from_path(resource_local_path, bucket, "{}/glue_resources/{}".format(bucket_folder,f))
+
+
+    # Upload all the .py or .zip files in resources
+    resource_listing = os.listdir(os.path.join(local_base, 'glue_py_resources'))
+    regex = ".+(\.py|\.zip)$"
+    resource_listing = [f for f in resource_listing if re.match(regex, f)]
+
+    for f in resource_listing:
+        resource_local_path = os.path.join(local_base, "glue_py_resources", f)
+        path = upload_file_to_s3_from_path(resource_local_path, bucket, "{}/glue_py_resources/{}".format(bucket_folder,f))
