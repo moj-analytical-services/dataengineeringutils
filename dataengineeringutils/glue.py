@@ -253,6 +253,7 @@ def glue_job_folder_to_s3(local_base, s3_base_path):
         zip and python files
       glue_resources/
         txt, sql, json, or csv files
+
     """
 
     base_dir_listing = os.listdir(local_base)
@@ -292,3 +293,40 @@ def glue_job_folder_to_s3(local_base, s3_base_path):
     for f in resource_listing:
         resource_local_path = os.path.join(local_base, "glue_py_resources", f)
         path = upload_file_to_s3_from_path(resource_local_path, bucket, "{}/glue_py_resources/{}".format(bucket_folder,f))
+
+
+def glue_folder_in_s3_to_job_spec(bucket, folder, **kwargs):
+    """
+    Given a set of files uploaded to s3 in a specific format, use them to create a glue job
+    """
+
+    folder = folder[:-1]
+
+    contents = s3_client.list_objects(Bucket=bucket, Prefix="glue_jobs/union_all/")
+    files_list = [c["Key"] for c in contents["Contents"]]
+
+    if "{}/job.py".format(folder) not in files_list:
+        raise ValueError("Cannot find job.py in the folder specified, stopping")
+    else:
+        job_path = "s3://{}/{}/job.py".format(bucket, folder)
+
+    py_resources = [f for f in files_list if "/glue_py_resources/" in f]
+    py_resources = ["s3://{}/{}".format(bucket, f) for f in py_resources]
+    py_resources = ",".join(py_resources)
+
+    resources = [f for f in files_list if "/glue_resources/" in f]
+    resources = ["s3://{}/{}".format(bucket,f) for f in resources]
+    resources = ",".join(resources)
+
+
+    args = {}
+    args["Name"] = kwargs["Name"]
+    args["Role"] = kwargs["Role"]
+    args["ScriptLocation"] = job_path
+    args["extra-files"] = resources
+    args["extra-py-files"] = py_resources
+    args["TempDir"] = "s3://{}/{}/temp_dir".format(bucket,folder)
+
+    job = create_glue_job_definition(**args)
+
+    return job
