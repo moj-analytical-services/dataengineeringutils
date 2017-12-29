@@ -8,10 +8,12 @@ import pkg_resources
 import dataengineeringutils.meta as meta_utils
 from dataengineeringutils.datatypes import translate_metadata_type_to_type
 from dataengineeringutils.utils import dict_merge, read_json
+from dataengineeringutils.s3 import path_to_bucket_key, upload_file_to_s3_from_path, delete_folder_from_bucket
 
 from io import StringIO
 glue_client = boto3.client('glue', 'eu-west-1')
 s3_resource = boto3.resource('s3')
+s3_client = boto3.client('s3')
 
 import logging
 log = logging.getLogger(__name__)
@@ -270,7 +272,6 @@ def glue_job_folder_to_s3(local_base, s3_base_path):
 
     bucket_folder = bucket_folder[:-1]
 
-
     local_job_path = os.path.join(local_base, "job.py")
     job_path = upload_file_to_s3_from_path(local_job_path, bucket, "{}/job.py".format(bucket_folder))
 
@@ -295,20 +296,21 @@ def glue_job_folder_to_s3(local_base, s3_base_path):
         path = upload_file_to_s3_from_path(resource_local_path, bucket, "{}/glue_py_resources/{}".format(bucket_folder,f))
 
 
-def glue_folder_in_s3_to_job_spec(bucket, folder, **kwargs):
+def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs):
     """
     Given a set of files uploaded to s3 in a specific format, use them to create a glue job
     """
+    bucket, bucket_folder = path_to_bucket_key(s3_base_path)
 
-    folder = folder[:-1]
+    bucket_folder = bucket_folder[:-1]
 
-    contents = s3_client.list_objects(Bucket=bucket, Prefix="glue_jobs/union_all/")
+    contents = s3_client.list_objects(Bucket=bucket, Prefix=bucket_folder)
     files_list = [c["Key"] for c in contents["Contents"]]
 
-    if "{}/job.py".format(folder) not in files_list:
+    if "{}/job.py".format(bucket_folder) not in files_list:
         raise ValueError("Cannot find job.py in the folder specified, stopping")
     else:
-        job_path = "s3://{}/{}/job.py".format(bucket, folder)
+        job_path = "s3://{}/{}/job.py".format(bucket, bucket_folder)
 
     py_resources = [f for f in files_list if "/glue_py_resources/" in f]
     py_resources = ["s3://{}/{}".format(bucket, f) for f in py_resources]
@@ -318,15 +320,33 @@ def glue_folder_in_s3_to_job_spec(bucket, folder, **kwargs):
     resources = ["s3://{}/{}".format(bucket,f) for f in resources]
     resources = ",".join(resources)
 
+    if " " in resources or " " in py_resources:
+        raise ValueError("The files in glue_resources and glue_py_resources must not have spaces in their filenames")
 
-    args = {}
-    args["Name"] = kwargs["Name"]
-    args["Role"] = kwargs["Role"]
-    args["ScriptLocation"] = job_path
-    args["extra-files"] = resources
-    args["extra-py-files"] = py_resources
-    args["TempDir"] = "s3://{}/{}/temp_dir".format(bucket,folder)
+    kwargs["ScriptLocation"] = job_path
+    kwargs["extra-files"] = resources
+    kwargs["extra-py-files"] = py_resources
+    kwargs["TempDir"] = "s3://{}/{}/temp_dir/".format(bucket,bucket_folder)
 
-    job = create_glue_job_definition(**args)
+    job = create_glue_job_definition(**kwargs)
 
     return job
+
+def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role):
+    """
+    Take a local folder layed out using our agreed folder spec, upload to s3, and run
+    """
+
+    metadata_folder_to_database(os.path.join(local_base, "out_meta"))
+
+    bucket, bucket_folder = path_to_bucket_key(s3_base_path)
+
+    delete_folder_from_bucket(bucket, bucket_folder)
+
+    glue_job_folder_to_s3(local_base, s3_base_path)
+
+    job_spec = glue_folder_in_s3_to_job_spec(s3_base_path, Name=name, Role=role)
+
+    response = glue_client.create_job(**job_spec)
+    response = glue_client.start_job_run(JobName=name)
+    return response, job_spec
