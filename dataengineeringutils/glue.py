@@ -44,6 +44,7 @@ def get_table_definition_template(template_type = 'csv', **kwargs):
     conversion = {
         "avro": pkg_resources.resource_stream(__name__, "specs/avro_specific.json"),
         "csv": pkg_resources.resource_stream(__name__, "specs/csv_specific.json"),
+        "txt": pkg_resources.resource_stream(__name__, "specs/txt_specific.json"),
         "orc": pkg_resources.resource_stream(__name__, "specs/orc_specific.json"),
         "par": pkg_resources.resource_stream(__name__, "specs/par_specific.json"),
         "parquet": pkg_resources.resource_stream(__name__, "specs/par_specific.json")
@@ -187,6 +188,10 @@ def metadata_to_glue_table_definition(metadata):
 
     table_definition['StorageDescriptor']['Columns'] = column_spec
     table_definition['StorageDescriptor']["Location"] = metadata["location"]
+
+    if "partition_keys" in metadata:
+        table_definition['PartitionKeys'] = metadata["partition_keys"]
+
 
     return table_definition
 
@@ -332,12 +337,33 @@ def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs):
 
     return job
 
+def delete_all_target_data_from_database(database_metadata_path):
+    files = os.listdir(database_metadata_path)
+    files = set([f for f in files if re.match(".+\.json$", f)])
+
+    if "database.json" in files:
+        db_metadata = read_json(os.path.join(database_metadata_path, "database.json"))
+        database_name = db_metadata["name"]
+    else:
+        raise ValueError("database.json not found in metadata folder")
+        return None
+
+    table_paths = files.difference({"database.json"})
+    for table_path in table_paths:
+        table_path = os.path.join(database_metadata_path, table_path)
+        table_metadata = read_json(table_path)
+        location = table_metadata["location"]
+        bucket, bucket_folder = path_to_bucket_key(location)
+        delete_folder_from_bucket(bucket, bucket_folder)
+
+
 def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role):
     """
     Take a local folder layed out using our agreed folder spec, upload to s3, and run
     """
 
     metadata_folder_to_database(os.path.join(local_base, "out_meta"))
+    delete_all_target_data_from_database(os.path.join(local_base, "out_meta"))
 
     bucket, bucket_folder = path_to_bucket_key(s3_base_path)
 
