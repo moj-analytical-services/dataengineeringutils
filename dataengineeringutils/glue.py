@@ -44,6 +44,7 @@ def get_table_definition_template(template_type = 'csv', **kwargs):
     conversion = {
         "avro": pkg_resources.resource_stream(__name__, "specs/avro_specific.json"),
         "csv": pkg_resources.resource_stream(__name__, "specs/csv_specific.json"),
+        "csv_quoted_nodate": pkg_resources.resource_stream(__name__, "specs/csv_quoted_nodate_specific.json"),
         "regex": pkg_resources.resource_stream(__name__, "specs/regex_specific.json"),
         "orc": pkg_resources.resource_stream(__name__, "specs/orc_specific.json"),
         "par": pkg_resources.resource_stream(__name__, "specs/par_specific.json"),
@@ -131,6 +132,7 @@ def create_glue_job_definition(**kwargs):
         template["AllocatedCapacity"] = kwargs["AllocatedCapacity"]
     else:
         template["AllocatedCapacity"] = 3
+
 
     return template
 
@@ -364,7 +366,7 @@ def delete_all_target_data_from_database(database_metadata_path):
         delete_folder_from_bucket(bucket, bucket_folder)
 
 
-def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role):
+def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role, job_args = None):
     """
     Take a local folder layed out using our agreed folder spec, upload to s3, and run
     """
@@ -378,8 +380,11 @@ def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role
 
     glue_job_folder_to_s3(local_base, s3_base_path)
 
-    job_spec = glue_folder_in_s3_to_job_spec(s3_base_path, Name=name, Role=role)
+    if job_args:
+        job_spec = glue_folder_in_s3_to_job_spec(s3_base_path, Name=name, Role=role, DefaultArguments = job_args)
+    else:
+        job_spec = glue_folder_in_s3_to_job_spec(s3_base_path, Name=name, Role=role)
 
     response = glue_client.create_job(**job_spec)
-    response = glue_client.start_job_run(JobName=name)
+    response = glue_client.start_job_run(JobName=name, Arguments = job_args)
     return response, job_spec
