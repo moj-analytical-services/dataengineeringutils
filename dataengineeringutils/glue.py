@@ -44,7 +44,7 @@ def get_table_definition_template(template_type = 'csv', **kwargs):
     conversion = {
         "avro": pkg_resources.resource_stream(__name__, "specs/avro_specific.json"),
         "csv": pkg_resources.resource_stream(__name__, "specs/csv_specific.json"),
-        "txt": pkg_resources.resource_stream(__name__, "specs/txt_specific.json"),
+        "regex": pkg_resources.resource_stream(__name__, "specs/regex_specific.json"),
         "orc": pkg_resources.resource_stream(__name__, "specs/orc_specific.json"),
         "par": pkg_resources.resource_stream(__name__, "specs/par_specific.json"),
         "parquet": pkg_resources.resource_stream(__name__, "specs/par_specific.json")
@@ -189,9 +189,16 @@ def metadata_to_glue_table_definition(metadata):
     table_definition['StorageDescriptor']['Columns'] = column_spec
     table_definition['StorageDescriptor']["Location"] = metadata["location"]
 
-    if "partition_keys" in metadata:
-        table_definition['PartitionKeys'] = metadata["partition_keys"]
+    if "glue_specific" in metadata:
+        dict_merge(table_definition, metadata["glue_specific"])
 
+        # If there are partition keys, remove them from table
+        if "PartitionKeys" in metadata["glue_specific"]:
+            pks = metadata["glue_specific"]["PartitionKeys"]
+            pk_names = [pk["Name"] for pk in pks]
+            cols = table_definition["StorageDescriptor"]["Columns"]
+            cols = [col for col in cols if col["Name"] not in pk_names]
+            table_definition["StorageDescriptor"]["Columns"] = cols
 
     return table_definition
 
