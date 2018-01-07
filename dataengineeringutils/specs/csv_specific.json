@@ -3,13 +3,19 @@
         "InputFormat": "org.apache.hadoop.mapred.TextInputFormat",
         "OutputFormat": "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat",
         "SerdeInfo": {
-            "SerializationLibrary": "org.apache.hadoop.hive.serde2.OpenCSVSerde",
-            "Parameters": {"escapeChar": "\\",
-                "quoteChar": "\"",
-                "separatorChar": ",",
-                "serialization.format": "1"
+            "SerializationLibrary": "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe",
+            "Parameters": {
+                "field.delim": ","
             }
         },
+        "Parameters": {
+            "classification": "csv",
+            "delimiter": ","
+        },
         "StoredAsSubDirectories": false
+    },
+    "Parameters": {
+        "classification": "csv",
+        "delimiter": ","
     }
 }

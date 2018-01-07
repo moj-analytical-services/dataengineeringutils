@@ -165,7 +165,6 @@ def get_glue_column_spec_from_metadata(metadata):
     Use metadata to create a column spec which will fit into the Glue table template
     """
     columns = metadata["columns"]
-    columns.sort(key=lambda x: x["column_number"])
     glue_columns = []
     for c in columns:
         new_c = {}
