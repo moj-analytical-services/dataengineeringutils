@@ -6,6 +6,6 @@ def normalise_string(colname):
     colname = re.sub("[^\w]", "_", colname)
     return colname
 
-def normalise_df_columns(df):
+def clean_and_normalise_df_column_names(df):
     df.columns = [normalise_string(c) for c in df.columns]
     return df
