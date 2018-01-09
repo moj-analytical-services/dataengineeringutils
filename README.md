@@ -1,4 +1,4 @@
-# data_engineering_utils
+# data Engineering Utils
 A python package containing functions that help manage our data management processes on AWS
 
 To install this package
