@@ -2,10 +2,10 @@
 A python package containing functions that help manage our data management processes on AWS
 
 To install this package
-`pip install git+git://github.com/moj-analytical-services/data_engineering_utils.git#egg=data_engineering_utils`
+`pip install git+git://github.com/moj-analytical-services/dataengineeringutils.git#egg=dataengineeringutils`
 
 If you want to update the package then you need to delete it first before reinstalling i.e. run:
-`pip uninstall data_engineering_utils`
+`pip uninstall dataengineeringutils`
 
 **Warning:** This package has the following dependencies:
 - numpy
