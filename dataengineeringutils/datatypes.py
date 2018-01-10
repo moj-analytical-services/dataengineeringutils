@@ -12,4 +12,4 @@ def translate_metadata_type_to_type(column_type, target_type):
     try:
         return lookup[column_type]["glue"]
     except:
-        raise KeyError("You attempted to lookup column type {}, but this cannot be found in data_type_conversion.csv")
+        raise KeyError("You attempted to lookup column type {}, but this cannot be found in data_type_conversion.csv".format(column_type))
