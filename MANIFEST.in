@@ -1,0 +1,9 @@
+include dataengineeringutils/specs/avro_specific.json
+include dataengineeringutils/specs/glue_job.json
+include dataengineeringutils/specs/base.json
+include dataengineeringutils/specs/orc_specific.json
+include dataengineeringutils/specs/csv_quoted_nodate_specific.json
+include dataengineeringutils/specs/par_specific.json
+include dataengineeringutils/specs/csv_specific.json
+include dataengineeringutils/specs/regex_specific.json
+include dataengineeringutils/data/data_type_conversion.csv

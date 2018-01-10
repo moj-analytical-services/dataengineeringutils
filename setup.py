@@ -9,7 +9,7 @@ setup(
     long_description=open('README.md').read(),
     install_requires=[],
     include_package_data=True,
-    url='https://github.com/moj-analytical-services/data_engineering_utils',
+    url='https://github.com/moj-analytical-services/dataengineeringutils',
     author='Karik Isichei',
     author_email=''
 )
