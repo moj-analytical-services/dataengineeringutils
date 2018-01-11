@@ -2,7 +2,7 @@ import pandas as pd
 import io
 import boto3
 import re
-from dataengineeringutils.utils import read_json
+import os
 
 s3_resource = boto3.resource('s3')
 s3_client = boto3.client('s3')
