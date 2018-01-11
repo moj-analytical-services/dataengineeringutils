@@ -36,7 +36,7 @@ def upload_meta_data_folder_to_s3(meta_data_base_folder, bucket) :
     meta_listing = [f for f in meta_listing if re.match(regex, f)]
     for m in meta_listing:
         meta_local_path = os.path.join(meta_data_base_folder, m)
-        path = s3.upload_file_to_s3_from_path(meta_local_path, bucket, meta_local_path)
+        path = upload_file_to_s3_from_path(meta_local_path, bucket, meta_local_path)
 
 def delete_file_from_s3(bucket_name, key):
     s3_resource.Object(bucket_name, key).delete()
