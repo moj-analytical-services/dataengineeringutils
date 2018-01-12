@@ -100,28 +100,34 @@ def create_glue_job_definition(**kwargs):
 
     if 'Name' in kwargs:
         template["Name"] = kwargs['Name']
-    else:
+    else :
         raise ValueError("You must give your job a name, using the Name kwarg")
 
     if 'Role' in kwargs:
         template["Role"] = kwargs["Role"]
-    else:
+    else :
         raise ValueError("You must give your job a role, using the Role kwarg")
 
     if 'ScriptLocation' in kwargs:
         template["Command"]["ScriptLocation"] = kwargs["ScriptLocation"]
-    else:
+    else :
         raise ValueError("You must assign a ScriptLocation to your job, using the ScriptLocation kwarg")
 
     if 'TempDir' in kwargs:
         template["DefaultArguments"]["--TempDir"] = kwargs["TempDir"]
+    else :
+        raise ValueError("You must give your job a temporary directory to work in, using the TempDir kwarg")
 
     if 'extra-files' in kwargs:
         template["DefaultArguments"]["--extra-files"] = kwargs["extra-files"]
+    else :
+        template["DefaultArguments"].pop("--extra-files", None)
 
     if 'extra-py-files' in kwargs:
         template["DefaultArguments"]["--extra-py-files"] = kwargs["extra-py-files"]
-
+    else :
+        template["DefaultArguments"].pop("--extra-py-files", None)
+        
     if 'MaxConcurrentRuns' in kwargs:
         template["ExecututionProperty"]["MaxConcurrentRuns"] = kwargs["MaxConcurrentRuns"]
 
@@ -341,9 +347,9 @@ def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs):
     kwargs["extra-py-files"] = py_resources
     kwargs["TempDir"] = "s3://{}/{}/temp_dir/".format(bucket,bucket_folder)
 
-    job = create_glue_job_definition(**kwargs)
+    job_spec = create_glue_job_definition(**kwargs)
 
-    return job
+    return job_spec
 
 def delete_all_target_data_from_database(database_metadata_path):
     files = os.listdir(database_metadata_path)
