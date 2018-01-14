@@ -10,6 +10,8 @@ s3_client = boto3.client('s3')
 def path_to_bucket_key(path):
     path = path.replace("s3://", "")
     bucket, key = path.split('/', 1)
+    if key[-1] != "/":
+        key = key + "/"
     return bucket, key
 
 def pd_read_csv_s3(path, *args, **kwargs):

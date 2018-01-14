@@ -320,10 +320,9 @@ def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs):
     Given a set of files uploaded to s3 in a specific format, use them to create a glue job
     """
     bucket, bucket_folder = path_to_bucket_key(s3_base_path)
-
     bucket_folder = bucket_folder[:-1]
 
-    contents = s3_client.list_objects(Bucket=bucket, Prefix=bucket_folder)
+    contents = s3_client.list_objects(Bucket=bucket, Prefix=bucket_folder + "/")
     files_list = [c["Key"] for c in contents["Contents"]]
 
     if "{}/job.py".format(bucket_folder) not in files_list:
