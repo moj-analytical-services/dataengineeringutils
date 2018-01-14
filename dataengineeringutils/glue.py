@@ -127,7 +127,7 @@ def create_glue_job_definition(**kwargs):
         template["DefaultArguments"]["--extra-py-files"] = kwargs["extra-py-files"]
     else :
         template["DefaultArguments"].pop("--extra-py-files", None)
-        
+
     if 'MaxConcurrentRuns' in kwargs:
         template["ExecututionProperty"]["MaxConcurrentRuns"] = kwargs["MaxConcurrentRuns"]
 
@@ -371,13 +371,15 @@ def delete_all_target_data_from_database(database_metadata_path):
         delete_folder_from_bucket(bucket, bucket_folder)
 
 
-def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role, job_args = None):
+def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role, job_args = None,  AllocatedCapacity = 3):
     """
     Take a local folder layed out using our agreed folder spec, upload to s3, and run
     """
 
-    metadata_folder_to_database(os.path.join(local_base, "out_meta"))
-    delete_all_target_data_from_database(os.path.join(local_base, "out_meta"))
+    out_meta_path = os.path.join(local_base, "out_meta")
+    if os.path.isdir(out_meta_path):
+        metadata_folder_to_database(out_meta_path)
+        delete_all_target_data_from_database(os.path.join(local_base, "out_meta"))
 
     bucket, bucket_folder = path_to_bucket_key(s3_base_path)
 
@@ -390,6 +392,17 @@ def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role
     else:
         job_spec = glue_folder_in_s3_to_job_spec(s3_base_path, Name=name, Role=role)
 
+    job_spec["AllocatedCapacity"] = AllocatedCapacity
+
     response = glue_client.create_job(**job_spec)
-    response = glue_client.start_job_run(JobName=name, Arguments = job_args)
+    if job_args:
+        response = glue_client.start_job_run(JobName=name, Arguments = job_args)
+    else:
+       response = glue_client.start_job_run(JobName=name)
     return response, job_spec
+
+def delete_job(job_name):
+    try:
+        return glue_client.delete_job(JobName=job_name)
+    except:
+        return "No job with that name found"
