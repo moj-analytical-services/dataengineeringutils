@@ -8,7 +8,7 @@ import pkg_resources
 import dataengineeringutils.meta as meta_utils
 from dataengineeringutils.datatypes import translate_metadata_type_to_type
 from dataengineeringutils.utils import dict_merge, read_json
-from dataengineeringutils.s3 import path_to_bucket_key, upload_file_to_s3_from_path, delete_folder_from_bucket
+from dataengineeringutils.s3 import s3_path_to_bucket_key, upload_file_to_s3_from_path, delete_folder_from_bucket
 
 from io import StringIO
 glue_client = boto3.client('glue', 'eu-west-1')
@@ -287,7 +287,7 @@ def glue_job_folder_to_s3(local_base, s3_base_path):
         raise ValueError("Could not find job.py in base directory provided, stopping")
 
     # Upload job
-    bucket, bucket_folder = path_to_bucket_key(s3_base_path)
+    bucket, bucket_folder = s3_path_to_bucket_key(s3_base_path)
 
     bucket_folder = bucket_folder[:-1]
 
@@ -319,7 +319,13 @@ def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs):
     """
     Given a set of files uploaded to s3 in a specific format, use them to create a glue job
     """
-    bucket, bucket_folder = path_to_bucket_key(s3_base_path)
+
+    #Base path should be a folder.  Ensure ends in "/"
+    # Otherwise listing the bucket could cause problems in e.g. the case there are two jobs, job_1 and job_12
+    if s3_base_path[-1] != "/":
+        s3_base_path = s3_base_path + "/"
+
+    bucket, bucket_folder = s3_path_to_bucket_key(s3_base_path)
     bucket_folder = bucket_folder[:-1]
 
     contents = s3_client.list_objects(Bucket=bucket, Prefix=bucket_folder + "/")
@@ -366,7 +372,7 @@ def delete_all_target_data_from_database(database_metadata_path):
         table_path = os.path.join(database_metadata_path, table_path)
         table_metadata = read_json(table_path)
         location = table_metadata["location"]
-        bucket, bucket_folder = path_to_bucket_key(location)
+        bucket, bucket_folder = s3_path_to_bucket_key(location)
         delete_folder_from_bucket(bucket, bucket_folder)
 
 
@@ -380,7 +386,7 @@ def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role
         metadata_folder_to_database(out_meta_path)
         delete_all_target_data_from_database(os.path.join(local_base, "out_meta"))
 
-    bucket, bucket_folder = path_to_bucket_key(s3_base_path)
+    bucket, bucket_folder = s3_path_to_bucket_key(s3_base_path)
 
     delete_folder_from_bucket(bucket, bucket_folder)
 
