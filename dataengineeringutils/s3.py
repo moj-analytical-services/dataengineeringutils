@@ -56,3 +56,20 @@ def delete_folder_from_bucket(bucket, folder):
     bucket = s3_resource.Bucket(bucket)
 
     bucket.objects.filter(Prefix=folder).delete()
+
+def first_n_bytes_of_s3_object_to_lines(s3_path, num_bytes=1024, encoding="utf-8"):
+    """
+    Read the first n bytes of an s3 object and return a list of lines
+    Args:
+        s3_path: The full path to the s3 object
+        num_bytes: The number of bytes of the file to read
+        encoding: The character encoding to use to convert these bytes to a string
+    Returns:
+        lines: A list of strings, each element representing a line
+    """
+
+    bucket, key = s3_path_to_bucket_key(s3_path)
+    obj = s3_resource.Object(bucket, key)
+    text = obj.get()['Body'].read(num_bytes).decode(encoding)
+    lines = text.splitlines()
+    return lines
