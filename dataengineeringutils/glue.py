@@ -316,7 +316,7 @@ def glue_job_folder_to_s3(local_base, s3_base_path):
     delete_these_paths = []
     if os.path.isdir(py_resources_path):
 
-        zip_urls_path = os.path.join(py_resources_path, "zip_urls.txt")
+        zip_urls_path = os.path.join(py_resources_path, "github_zip_urls.txt")
         if os.path.exists(zip_urls_path):
 
             with open(zip_urls_path, "r") as f:
@@ -324,12 +324,13 @@ def glue_job_folder_to_s3(local_base, s3_base_path):
 
             urls = [url for url in urls if len(url) > 10]
 
-
             for i, url in enumerate(urls):
-                # Download file
+
                 this_zip_path = os.path.join(py_resources_path,"{}.zip".format(i))
                 urlretrieve(url,this_zip_path)
-                delete_these_paths.append(this_zip_path)
+                new_zip_path = unnest_github_zipfile_and_return_new_zip_path(this_zip_path)
+                os.remove(this_zip_path)
+                delete_these_paths.append(new_zip_path)
 
 
         resource_listing = os.listdir(os.path.join(local_base, 'glue_py_resources'))
@@ -378,8 +379,10 @@ def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs):
         raise ValueError("The files in glue_resources and glue_py_resources must not have spaces in their filenames")
 
     kwargs["ScriptLocation"] = job_path
-    kwargs["extra-files"] = resources
-    kwargs["extra-py-files"] = py_resources
+    if resources:
+        kwargs["extra-files"] = resources
+    if py_resources:
+        kwargs["extra-py-files"] = py_resources
     kwargs["TempDir"] = "s3://{}/{}/temp_dir/".format(bucket,bucket_folder)
 
     job_spec = create_glue_job_definition(**kwargs)
@@ -441,3 +444,35 @@ def delete_job(job_name):
         return glue_client.delete_job(JobName=job_name)
     except:
         return "No job with that name found"
+
+import tempfile
+import zipfile
+import shutil
+def unnest_github_zipfile_and_return_new_zip_path(zip_path):
+    """
+    When we download a zipball from github like this one:
+    https://github.com/moj-analytical-services/gluejobutils/archive/master.zip
+
+    The python lib is nested in the directory like:
+    gluejobutils-master/gluejobutils/py files
+
+    The glue docs say that it will only work without this nesting:
+    docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-python-libraries.html
+
+    This function creates a new, unnested zip file, and returns the path to it
+
+    """
+
+    original_file_name = os.path.basename(zip_path)
+    original_dir = os.path.dirname(zip_path)
+    new_file_name = original_file_name.replace(".zip", "_new")
+
+    with tempfile.TemporaryDirectory() as td:
+        myzip = zipfile.ZipFile(zip_path, 'r')
+        myzip.extractall(td)
+        nested_folder_to_unnest = os.listdir(td)[0]
+        nested_path = os.path.join(td, nested_folder_to_unnest)
+        output_path = os.path.join(original_dir, new_file_name)
+        final_output_path = shutil.make_archive(output_path, 'zip', nested_path)
+
+    return final_output_path
