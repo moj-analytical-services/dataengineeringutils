@@ -5,6 +5,7 @@ import numpy as np
 import boto3
 import json
 import pkg_resources
+from urllib.request import urlretrieve
 import dataengineeringutils.meta as meta_utils
 from dataengineeringutils.datatypes import translate_metadata_type_to_type
 from dataengineeringutils.utils import dict_merge, read_json
@@ -272,6 +273,7 @@ def glue_job_folder_to_s3(local_base, s3_base_path):
       job.py
       glue_py_resources/
         zip and python files
+        zip_urls <- file containing urls of additional zip files e.g. on github
       glue_resources/
         txt, sql, json, or csv files
 
@@ -296,23 +298,43 @@ def glue_job_folder_to_s3(local_base, s3_base_path):
 
 
     # Upload all the .py or .zip files in resources
-    resource_listing = os.listdir(os.path.join(local_base, 'glue_resources'))
-    regex = ".+(\.sql|\.json|\.csv|\.txt)$"
-    resource_listing = [f for f in resource_listing if re.match(regex, f)]
+    # Check existence of folder, otherwise skip
+    resources_path = os.path.join(local_base, "glue_resources")
+    if os.path.isdir(resources_path):
+        resource_listing = os.listdir(os.path.join(local_base, 'glue_resources'))
+        regex = ".+(\.sql|\.json|\.csv|\.txt)$"
+        resource_listing = [f for f in resource_listing if re.match(regex, f)]
 
-    for f in resource_listing:
-        resource_local_path = os.path.join(local_base, "glue_resources", f)
-        path = upload_file_to_s3_from_path(resource_local_path, bucket, "{}/glue_resources/{}".format(bucket_folder,f))
+        for f in resource_listing:
+            resource_local_path = os.path.join(local_base, "glue_resources", f)
+            path = upload_file_to_s3_from_path(resource_local_path, bucket, "{}/glue_resources/{}".format(bucket_folder,f))
 
 
     # Upload all the .py or .zip files in resources
-    resource_listing = os.listdir(os.path.join(local_base, 'glue_py_resources'))
-    regex = ".+(\.py|\.zip)$"
-    resource_listing = [f for f in resource_listing if re.match(regex, f)]
+    # Check existence of folder, otherwise skip
+    py_resources_path = os.path.join(local_base, "glue_py_resources")
+    if os.path.isdir(py_resources_path):
 
-    for f in resource_listing:
-        resource_local_path = os.path.join(local_base, "glue_py_resources", f)
-        path = upload_file_to_s3_from_path(resource_local_path, bucket, "{}/glue_py_resources/{}".format(bucket_folder,f))
+        zip_urls_path = os.path.join(py_resources_path, "zip_urls.txt")
+        if os.path.exists(zip_urls_path):
+
+            with open("urls_delete.txt", "r") as f:
+                urls = f.readlines()
+
+            urls = [url for url in urls if len(url) > 10]
+
+            for i, url in enumerate(urls):
+                # Download file
+                urlretrieve(url,os.path.join(py_resources_path,"{}.zip".format(i)))
+
+
+        resource_listing = os.listdir(os.path.join(local_base, 'glue_py_resources'))
+        regex = ".+(\.py|\.zip)$"
+        resource_listing = [f for f in resource_listing if re.match(regex, f)]
+
+        for f in resource_listing:
+            resource_local_path = os.path.join(local_base, "glue_py_resources", f)
+            path = upload_file_to_s3_from_path(resource_local_path, bucket, "{}/glue_py_resources/{}".format(bucket_folder,f))
 
 
 def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs):
