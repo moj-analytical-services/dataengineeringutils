@@ -313,19 +313,23 @@ def glue_job_folder_to_s3(local_base, s3_base_path):
     # Upload all the .py or .zip files in resources
     # Check existence of folder, otherwise skip
     py_resources_path = os.path.join(local_base, "glue_py_resources")
+    delete_these_paths = []
     if os.path.isdir(py_resources_path):
 
         zip_urls_path = os.path.join(py_resources_path, "zip_urls.txt")
         if os.path.exists(zip_urls_path):
 
-            with open("urls_delete.txt", "r") as f:
+            with open(zip_urls_path, "r") as f:
                 urls = f.readlines()
 
             urls = [url for url in urls if len(url) > 10]
 
+
             for i, url in enumerate(urls):
                 # Download file
-                urlretrieve(url,os.path.join(py_resources_path,"{}.zip".format(i)))
+                this_zip_path = os.path.join(py_resources_path,"{}.zip".format(i))
+                urlretrieve(url,this_zip_path)
+                delete_these_paths.append(this_zip_path)
 
 
         resource_listing = os.listdir(os.path.join(local_base, 'glue_py_resources'))
@@ -335,6 +339,10 @@ def glue_job_folder_to_s3(local_base, s3_base_path):
         for f in resource_listing:
             resource_local_path = os.path.join(local_base, "glue_py_resources", f)
             path = upload_file_to_s3_from_path(resource_local_path, bucket, "{}/glue_py_resources/{}".format(bucket_folder,f))
+
+        # Remember to delete the files we downloaded
+        for this_path in delete_these_paths:
+            os.remove(this_path)
 
 
 def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs):
