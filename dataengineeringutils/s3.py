@@ -27,16 +27,17 @@ def upload_file_to_s3_from_path(input_path, bucket_name, output_path):
    s3_client.upload_file(input_path, bucket_name, output_path)
    return "s3://{}/{}".format(bucket_name, output_path)
 
-def upload_meta_data_folder_to_s3(meta_data_base_folder, bucket) :
+def upload_meta_data_folder_to_s3(meta_data_base_folder, bucket, output_meta_data_base_folder = None) :
     """
-    Uploads the same meta_data/ folder structure to it's S3 bucket
+    Uploads the same meta_data/ folder structure to it's S3 bucket - unless a different base_folder is provided
     """
     meta_listing = os.listdir(meta_data_base_folder)
     regex = ".+(\.json)$"
     meta_listing = [f for f in meta_listing if re.match(regex, f)]
     for m in meta_listing:
         meta_local_path = os.path.join(meta_data_base_folder, m)
-        path = upload_file_to_s3_from_path(meta_local_path, bucket, meta_local_path)
+        meta_output_path = meta_local_path if output_meta_data_base_folder is None else os.path.join(output_meta_data_base_folder, m)
+        path = upload_file_to_s3_from_path(meta_local_path, bucket, meta_output_path)
 
 def delete_file_from_s3(bucket_name, key):
     s3_resource.Object(bucket_name, key).delete()
