@@ -237,9 +237,13 @@ def populate_glue_catalogue_from_metadata(table_metadata, db_metadata, check_exi
         TableInput=tbl_def)
 
 
-def metadata_folder_to_database(folder_path, delete_db = True):
+def metadata_folder_to_database(folder_path, delete_db = True, folder_suffix = None):
     """
     Take a metadata folder and build the database and all tables
+
+    Args:
+        delete_db bool: Delete the database before starting
+        folder_suffix: If provided, metadata will be modified so that table names, and s3 data locations include the folder suffix
     """
     files = os.listdir(folder_path)
     files = set([f for f in files if re.match(".+\.json$", f)])
@@ -261,6 +265,17 @@ def metadata_folder_to_database(folder_path, delete_db = True):
     for table_path in table_paths:
         table_path = os.path.join(folder_path, table_path)
         table_metadata = read_json(table_path)
+
+        if folder_suffix:
+            str_to_add = "_" + folder_suffix
+            table_metadata["table_name"] = table_metadata["table_name"] + str_to_add
+            location = table_metadata["location"]
+            # Need to deal with the case where the path ends in a /
+            if location[-1] == "/":
+                location = location[:-1]
+            location = location + str_to_add
+            table_metadata["location"] = location
+
         populate_glue_catalogue_from_metadata(table_metadata, db_metadata, check_existence=False)
 
 
