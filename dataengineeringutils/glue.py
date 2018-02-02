@@ -77,7 +77,7 @@ def overwrite_or_create_database(db_name, db_description=""):
         pass
 
     log.debug("Creating database: {}".format(db_name))
-    response = glue_client.create_database(**db)
+    glue_client.create_database(**db)
 
 # Add table to database in glue
 def create_table_in_glue_from_def(db_name, table_name, table_spec) :
@@ -182,27 +182,31 @@ def get_glue_column_spec_from_metadata(metadata):
     return glue_columns
 
 
-def metadata_to_glue_table_definition(metadata):
+def metadata_to_glue_table_definition(tbl_metadata, db_metadata):
     """
     Use metadata in json format to create a table definition
     """
 
-    template_type = metadata["data_format"]
-    table_definition = get_table_definition_template(template_type)
-    column_spec = get_glue_column_spec_from_metadata(metadata)
+    database_location = db_metadata["location"]
+    table_location_relative = tbl_metadata["location"]
+    table_location_absolute = os.path.join(database_location, table_location_relative)
 
-    table_definition["Name"] = metadata["table_name"]
-    table_definition["Description"] = metadata["table_desc"]
+    template_type = tbl_metadata["data_format"]
+    table_definition = get_table_definition_template(template_type)
+    column_spec = get_glue_column_spec_from_metadata(tbl_metadata)
+
+    table_definition["Name"] = tbl_metadata["table_name"]
+    table_definition["Description"] = tbl_metadata["table_desc"]
 
     table_definition['StorageDescriptor']['Columns'] = column_spec
-    table_definition['StorageDescriptor']["Location"] = metadata["location"]
+    table_definition['StorageDescriptor']["Location"] = table_location_absolute
 
-    if "glue_specific" in metadata:
-        dict_merge(table_definition, metadata["glue_specific"])
+    if "glue_specific" in tbl_metadata:
+        dict_merge(table_definition, tbl_metadata["glue_specific"])
 
         # If there are partition keys, remove them from table
-        if "PartitionKeys" in metadata["glue_specific"]:
-            pks = metadata["glue_specific"]["PartitionKeys"]
+        if "PartitionKeys" in tbl_metadata["glue_specific"]:
+            pks = tbl_metadata["glue_specific"]["PartitionKeys"]
             pk_names = [pk["Name"] for pk in pks]
             cols = table_definition["StorageDescriptor"]["Columns"]
             cols = [col for col in cols if col["Name"] not in pk_names]
@@ -219,7 +223,8 @@ def populate_glue_catalogue_from_metadata(table_metadata, db_metadata, check_exi
     database_description = ["description"]
 
     table_name = table_metadata["table_name"]
-    tbl_def = metadata_to_glue_table_definition(table_metadata)
+
+    tbl_def = metadata_to_glue_table_definition(table_metadata, db_metadata)
 
     if check_existence:
         try:
@@ -237,25 +242,34 @@ def populate_glue_catalogue_from_metadata(table_metadata, db_metadata, check_exi
         TableInput=tbl_def)
 
 
-def metadata_folder_to_database(folder_path, delete_db = True, folder_suffix = None):
+def metadata_folder_to_database(folder_path, delete_db = True, db_suffix = None):
     """
     Take a metadata folder and build the database and all tables
-
     Args:
         delete_db bool: Delete the database before starting
-        folder_suffix: If provided, metadata will be modified so that table names, and s3 data locations include the folder suffix
+        db_suffix: If provided, metadata will be modified so that the database name, and s3 data locations include the folder suffix
     """
     files = os.listdir(folder_path)
     files = set([f for f in files if re.match(".+\.json$", f)])
 
     if "database.json" in files:
         db_metadata = read_json(os.path.join(folder_path, "database.json"))
+
+        if db_suffix:
+            str_to_add = "_" + db_suffix
+            if db_metadata["location"][-1] == "/":
+                db_metadata["location"] = db_metadata["location"][:-1]
+            db_metadata["location"] = db_metadata["location"] + str_to_add
+            db_metadata["name"] = db_metadata["name"] + str_to_add
+
         database_name = db_metadata["name"]
+
         try:
             glue_client.delete_database(Name=database_name)
         except glue_client.exceptions.EntityNotFoundException:
             pass
-        overwrite_or_create_database(database_name, db_metadata["description"])
+        response = overwrite_or_create_database(database_name, db_metadata["description"])
+        print(response)
 
     else:
         raise ValueError("database.json not found in metadata folder")
@@ -265,17 +279,6 @@ def metadata_folder_to_database(folder_path, delete_db = True, folder_suffix = N
     for table_path in table_paths:
         table_path = os.path.join(folder_path, table_path)
         table_metadata = read_json(table_path)
-
-        if folder_suffix:
-            str_to_add = "_" + folder_suffix
-            table_metadata["table_name"] = table_metadata["table_name"] + str_to_add
-            location = table_metadata["location"]
-            # Need to deal with the case where the path ends in a /
-            if location[-1] == "/":
-                location = location[:-1]
-            location = location + str_to_add
-            table_metadata["location"] = location
-
         populate_glue_catalogue_from_metadata(table_metadata, db_metadata, check_existence=False)
 
 
