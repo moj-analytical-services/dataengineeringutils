@@ -13,6 +13,12 @@ def s3_path_to_bucket_key(path):
     return bucket, key
 
 def s3_path_to_bytes_io(path):
+    """
+    Example usage:
+    bytes_io = s3_path_to_bytes_io("s3://bucket/file.csv")
+    for line in bytes_io.readlines():
+        print(line.decode("utf-8"))
+    """
     bucket, key = s3_path_to_bucket_key(path)
     obj = s3_client.get_object(Bucket=bucket, Key=key)
     return io.BytesIO(obj['Body'].read())
