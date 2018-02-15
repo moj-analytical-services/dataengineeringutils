@@ -12,6 +12,11 @@ def s3_path_to_bucket_key(path):
     bucket, key = path.split('/', 1)
     return bucket, key
 
+def s3_path_to_bytes_io(path):
+    bucket, key = s3_path_to_bucket_key(path)
+    obj = s3_client.get_object(Bucket=bucket, Key=key)
+    return io.BytesIO(obj['Body'].read())
+
 def pd_read_csv_s3(path, *args, **kwargs):
     bucket, key = s3_path_to_bucket_key(path)
     obj = s3_client.get_object(Bucket=bucket, Key=key)
