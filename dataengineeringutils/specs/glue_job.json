@@ -15,5 +15,5 @@
         "--job-bookmark-option": "job-bookmark-disable"
     },
     "MaxRetries": 0,
-    "AllocatedCapacity": 3
+    "AllocatedCapacity": 2
 }
