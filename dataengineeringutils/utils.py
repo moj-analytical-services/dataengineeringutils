@@ -29,10 +29,13 @@ def write_json(data, filename) :
         json.dump(data, outfile, indent=4, separators=(',', ': '))
 
 # Read first line of csv and return a list
-def get_csv_header(file_path, convert_to_lower = False) :
+def get_csv_header(file_path, convert_to_lower = False, strip_quotes = False) :
     with open(file_path) as f:
         line = f.readline()
         column_names = line.rstrip().split(",")
         if convert_to_lower :
             column_names = [c.lower() for c in column_names]
+        if strip_quotes :
+            column_names = [c.strip("'").strip('"') for c in column_names]
+
     return column_names
