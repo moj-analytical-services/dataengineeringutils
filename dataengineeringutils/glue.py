@@ -138,7 +138,7 @@ def create_glue_job_definition(**kwargs):
     if 'AllocatedCapacity' in kwargs:
         template["AllocatedCapacity"] = kwargs["AllocatedCapacity"]
     else:
-        template["AllocatedCapacity"] = 3
+        template["AllocatedCapacity"] = 2
 
 
     return template
