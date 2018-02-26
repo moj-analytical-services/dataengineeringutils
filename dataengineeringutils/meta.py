@@ -65,7 +65,7 @@ class Meta :
             self.meta['columns'].append({
                 'name' : column_name,
                 'type' : column_type,
-                'desc' : column_desc
+                'description' : column_desc
             })
             self.__update_column_names()
 
