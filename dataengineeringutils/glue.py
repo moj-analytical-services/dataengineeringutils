@@ -269,7 +269,6 @@ def metadata_folder_to_database(folder_path, delete_db = True, db_suffix = None)
         except glue_client.exceptions.EntityNotFoundException:
             pass
         response = overwrite_or_create_database(database_name, db_metadata["description"])
-        print(response)
 
     else:
         raise ValueError("database.json not found in metadata folder")
