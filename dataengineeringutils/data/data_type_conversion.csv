@@ -1,7 +1,8 @@
 metadata,glue,spark
 character,string,StringType
 int,int,IntegerType
-float,double,FloatType
+float,float,FloatType
 boolean,boolean,BooleanType
 datetime,timestamp,TimestampType
 date,date,DateType
+double,double,DoubleType
