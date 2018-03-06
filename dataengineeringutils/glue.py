@@ -426,7 +426,7 @@ def delete_all_target_data_from_database(database_metadata_path):
         delete_folder_from_bucket(bucket, bucket_folder)
 
 
-def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role, job_args = None,  AllocatedCapacity = 3):
+def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role, job_args = None):
     """
     Take a local folder layed out using our agreed folder spec, upload to s3, and run
     """
@@ -446,8 +446,6 @@ def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role
         job_spec = glue_folder_in_s3_to_job_spec(s3_base_path, Name=name, Role=role, DefaultArguments = job_args)
     else:
         job_spec = glue_folder_in_s3_to_job_spec(s3_base_path, Name=name, Role=role)
-
-    job_spec["AllocatedCapacity"] = AllocatedCapacity
 
     response = glue_client.create_job(**job_spec)
     if job_args:
