@@ -400,7 +400,7 @@ def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs):
         kwargs["extra-files"] = resources
     if py_resources:
         kwargs["extra-py-files"] = py_resources
-    kwargs["TempDir"] = "s3://{}/{}/temp_dir/".format(bucket,bucket_folder)
+    kwargs["TempDir"] = "s3://{}/{}/{}/temp_dir/".format(bucket, bucket_folder, kwargs["Name"])
 
     job_spec = create_glue_job_definition(**kwargs)
 
@@ -426,15 +426,24 @@ def delete_all_target_data_from_database(database_metadata_path):
         delete_folder_from_bucket(bucket, bucket_folder)
 
 
-def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role, job_args = None,  AllocatedCapacity = 3):
+def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role, job_args = None, allocated_capacity = None, max_retries = None, max_concurrent_runs = None):
     """
     Take a local folder layed out using our agreed folder spec, upload to s3, and run
+
+    job_def is a dictionary of arguments passed to create_glue_job_definition. If it is none it is given the bare minimum arguments needed: name and role.
+    Also note that if the job_def dict already has a Name and Role keys it will be overwritten by the name and role inputs. 
     """
 
-    out_meta_path = os.path.join(local_base, "out_meta")
-    if os.path.isdir(out_meta_path):
-        metadata_folder_to_database(out_meta_path)
-        delete_all_target_data_from_database(os.path.join(local_base, "out_meta"))
+    # Create kwargs for job defintion these will be used in glue_create_job_defintion
+    job_def_kwargs = {}
+    job_def_kwargs['Name'] = name
+    job_def_kwargs['Role'] = role
+    if allocated_capacity is not None :
+        job_def_kwargs['AllocatedCapacity'] = allocated_capacity
+    if max_retries is not None :
+        job_def_kwargs['MaxRetries'] = max_retries
+    if max_concurrent_runs is not None :
+        job_def_kwargs['MaxConcurrentRuns'] = max_concurrent_runs
 
     bucket, bucket_folder = s3_path_to_bucket_key(s3_base_path)
 
@@ -442,12 +451,7 @@ def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role
 
     glue_job_folder_to_s3(local_base, s3_base_path)
 
-    if job_args:
-        job_spec = glue_folder_in_s3_to_job_spec(s3_base_path, Name=name, Role=role, DefaultArguments = job_args)
-    else:
-        job_spec = glue_folder_in_s3_to_job_spec(s3_base_path, Name=name, Role=role)
-
-    job_spec["AllocatedCapacity"] = AllocatedCapacity
+    job_spec = glue_folder_in_s3_to_job_spec(s3_base_path, **job_def_kwargs)
 
     response = glue_client.create_job(**job_spec)
     if job_args:
