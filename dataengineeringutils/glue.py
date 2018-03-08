@@ -315,6 +315,7 @@ def glue_job_dir_to_s3(local_glue_jobs_dir, s3_glue_jobs_dir, include_folders = 
         s3_glue_jobs_dir = s3_glue_jobs_dir + '/'
 
     for glue_job in glue_job_folders :
+        print(local_glue_jobs_dir + glue_job + '/')
         glue_job_folder_to_s3(local_glue_jobs_dir + glue_job + '/', s3_glue_jobs_dir)
 
 def glue_job_folder_to_s3(local_base, s3_glue_jobs_dir):
@@ -344,8 +345,9 @@ def glue_job_folder_to_s3(local_base, s3_glue_jobs_dir):
     
     # Upload job
     bucket, bucket_folder = s3_path_to_bucket_key(s3_job_folder_path)
+    print(bucket, bucket_folder)
     bucket_folder = bucket_folder[:-1]
-
+    print(bucket_folder)
     # Check that there is at least a job.py in the given folder and then upload job if appropriate
     if 'job.py' not in base_dir_listing :
         if local_base.split('/')[-2] != 'shared_job_resources' :
