@@ -62,12 +62,16 @@ def upload_directory_to_s3(dir_path, s3_dir_parent_path, regex = ".+(\.sql|\.jso
     if s3_dir_parent_path[-1] != '/' :
         s3_dir_parent_path = s3_dir_parent_path + '/'
 
+    dir_path_prefix = '/'.join(dir_path.split('/')[:-2])
+    if dir_path_prefix != '' :
+        dir_path_prefix = dir_path_prefix + '/'
+
     bucket, key = s3_path_to_bucket_key(s3_dir_parent_path)
     for root, directories, filenames in os.walk('init'):
         for filename in filenames: 
             f = os.path.join(root,filename)
             if re.match(regex, f) : 
-                path_out = upload_file_to_s3_from_path(f, bucket, key + f)
+                path_out = upload_file_to_s3_from_path(f, bucket, key + f.replace(dir_path_prefix, ''))
 
 def delete_folder_from_bucket(bucket, folder):
 
