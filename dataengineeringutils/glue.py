@@ -284,8 +284,8 @@ def metadata_folder_to_database(folder_path, delete_db = True, db_suffix = None)
 def glue_job_dir_to_s3(local_glue_jobs_dir, s3_glue_jobs_dir, include_folders = None, exclude_folders = None) :
     """
     Iterate though all folders in the glue_job dir and upload them to a corresponsing 
-    glue_job dir that will be saved in the s3_glue_job_parent_dir. Each folder in 
-    local_glue_jobs_dir is uploaded using glue_job_folder_to_s3.
+    glue_job dir in s3. Each folder in local_glue_jobs_dir is uploaded using glue_job_folder_to_s3.
+    Provide list of folder glue_job folder names in include_folders and exclude_folders to include and exclude them from the upload. 
     """
     if local_glue_jobs_dir[-1] != '/' :
         local_glue_jobs_dir = local_glue_jobs_dir + '/'
