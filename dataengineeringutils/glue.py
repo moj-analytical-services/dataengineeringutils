@@ -315,7 +315,6 @@ def glue_job_dir_to_s3(local_glue_jobs_dir, s3_glue_jobs_dir, include_folders = 
         s3_glue_jobs_dir = s3_glue_jobs_dir + '/'
 
     for glue_job in glue_job_folders :
-        print(local_glue_jobs_dir + glue_job + '/')
         glue_job_folder_to_s3(local_glue_jobs_dir + glue_job + '/', s3_glue_jobs_dir)
 
 def glue_job_folder_to_s3(local_base, s3_glue_jobs_dir):
