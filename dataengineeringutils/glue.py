@@ -268,7 +268,7 @@ def metadata_folder_to_database(folder_path, delete_db = True, db_suffix = None)
             glue_client.delete_database(Name=database_name)
         except glue_client.exceptions.EntityNotFoundException:
             pass
-        response = overwrite_or_create_database(database_name, db_metadata["description"])
+        overwrite_or_create_database(database_name, db_metadata["description"])
 
     else:
         raise ValueError("database.json not found in metadata folder")
@@ -314,7 +314,7 @@ def glue_job_dir_to_s3(local_glue_jobs_dir, s3_glue_jobs_dir, include_folders = 
     if s3_glue_jobs_dir[-1] != '/' :
         s3_glue_jobs_dir = s3_glue_jobs_dir + '/'
 
-    for glue_job in glue_job_folder :
+    for glue_job in glue_job_folders :
         glue_job_folder_to_s3(local_glue_jobs_dir + glue_job + '/', s3_glue_jobs_dir)
 
 def glue_job_folder_to_s3(local_base, s3_glue_jobs_dir):
@@ -474,9 +474,10 @@ def run_glue_job_from_local_folder_template(local_base, s3_glue_jobs_dir, name, 
     Also note that if the job_def dict already has a Name and Role keys it will be overwritten by the name and role inputs. 
     """
 
-    if local_base[-1] != "/":
+    if local_base[-1] != "/" :
         local_base = local_base + "/"
-    if s3_glue_jobs_dir[-1] != '/'
+
+    if s3_glue_jobs_dir[-1] != '/' :
         s3_glue_jobs_dir = s3_glue_jobs_dir + '/' 
 
     s3_base_path = ''.join([s3_glue_jobs_dir] + local_base.split('/')[-2:])
