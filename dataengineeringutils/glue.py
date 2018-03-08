@@ -281,7 +281,7 @@ def metadata_folder_to_database(folder_path, delete_db = True, db_suffix = None)
         populate_glue_catalogue_from_metadata(table_metadata, db_metadata, check_existence=False)
 
 
-def glue_job_dir_to_s3(local_glue_jobs_dir, s3_glue_jobs_parent_dir, include_folders = None, exclude_folders = None) :
+def glue_job_dir_to_s3(local_glue_jobs_dir, s3_glue_jobs_dir, include_folders = None, exclude_folders = None) :
     """
     Iterate though all folders in the glue_job dir and upload them to a corresponsing 
     glue_job dir that will be saved in the s3_glue_job_parent_dir. Each folder in 
@@ -311,10 +311,11 @@ def glue_job_dir_to_s3(local_glue_jobs_dir, s3_glue_jobs_parent_dir, include_fol
     if exclude_folders is not None :
         glue_job_folders = [g for g in glue_job_folders if g not in exclude_folders]
 
-    s3_glue_jobs_dir = s3_glue_jobs_parent_dir + 'glue_jobs/' if s3_glue_jobs_parent_dir[-1] == '/' else s3_glue_jobs_parent_dir + '/glue_jobs/' 
+    if s3_glue_jobs_dir[-1] != '/' :
+        s3_glue_jobs_dir = s3_glue_jobs_dir + '/'
 
     for glue_job in glue_job_folder :
-        glue_job_folder_to_s3(local_glue_jobs_dir + glue_job, s3_glue_jobs_dir)
+        glue_job_folder_to_s3(local_glue_jobs_dir + glue_job + '/', s3_glue_jobs_dir)
 
 def glue_job_folder_to_s3(local_base, s3_glue_jobs_dir):
     """
