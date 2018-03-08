@@ -281,7 +281,42 @@ def metadata_folder_to_database(folder_path, delete_db = True, db_suffix = None)
         populate_glue_catalogue_from_metadata(table_metadata, db_metadata, check_existence=False)
 
 
-def glue_job_folder_to_s3(local_base, s3_base_path):
+def glue_job_dir_to_s3(local_glue_jobs_dir, s3_glue_jobs_parent_dir, include_folders = None, exclude_folders = None) :
+    """
+    Iterate though all folders in the glue_job dir and upload them to a corresponsing 
+    glue_job dir that will be saved in the s3_glue_job_parent_dir. Each folder in 
+    local_glue_jobs_dir is uploaded using glue_job_folder_to_s3.
+    """
+    if local_glue_jobs_dir[-1] != '/' :
+        local_glue_jobs_dir = local_glue_jobs_dir + '/'
+
+    # Do checks
+    if not (include_folders is None or isinstance(include_folders, list)) :
+        raise ValueError('include_folders must be a list or None')
+    if not (exclude_folders is None or isinstance(exclude_folders, list)) : 
+        raise ValueError('exclude_folders must be a list or None')
+
+    if include_folders is not None and exclude_folders is not None :
+        if len(set(include_folders).intersection(set(exclude_folders))) != 0 :
+            raise ValueError('Some folders are listed in both include_folders and exclude_folders')
+
+    # Create list of folders
+    glue_job_folders = [d for d in os.listdir(local_glue_jobs_dir) if os.path.isdir(os.path.join(local_glue_jobs_dir, d)) and d[0] != '.']
+    if include_folders is not None :
+        test_include = [i in glue_job_folders for i in include_folders]
+        if not all(test_include) :
+            raise ValueError('One of the folders listed in include_folders does not exist in {}'.format(local_glue_jobs_dir))
+        else :
+            glue_job_folders = include_folders
+    if exclude_folders is not None :
+        glue_job_folders = [g for g in glue_job_folders if g not in exclude_folders]
+
+    s3_glue_jobs_dir = s3_glue_jobs_parent_dir + 'glue_jobs/' if s3_glue_jobs_parent_dir[-1] == '/' else s3_glue_jobs_parent_dir + '/glue_jobs/' 
+
+    for glue_job in glue_job_folder :
+        glue_job_folder_to_s3(local_glue_jobs_dir + glue_job, s3_glue_jobs_dir)
+
+def glue_job_folder_to_s3(local_base, s3_glue_jobs_dir):
     """
     Take a folder structure on local disk and transfer to s3.
 
@@ -294,25 +329,29 @@ def glue_job_folder_to_s3(local_base, s3_base_path):
       glue_resources/
         txt, sql, json, or csv files
 
+    The folder name base dir will be in the folder s3_path_to_glue_jobs_folder
     """
+    if local_base[-1] != '/' :
+        local_base = local_base + '/'
 
     base_dir_listing = os.listdir(local_base)
 
-    if s3_base_path[-1:] != "/":
-        raise ValueError("s3_base_path must be a folder and therefore must end in a /")
+    if s3_glue_jobs_dir[-1:] != "/":
+        raise ValueError("s3_glue_jobs_dir must be a folder and therefore must end in a /")
 
-    # Check that there is at least a job.py in the given folder
-    if 'job.py' not in base_dir_listing:
-        raise ValueError("Could not find job.py in base directory provided, stopping")
-
+    s3_job_folder_path = ''.join([s3_glue_jobs_dir] + local_base.split('/')[-2:])
+    
     # Upload job
-    bucket, bucket_folder = s3_path_to_bucket_key(s3_base_path)
-
+    bucket, bucket_folder = s3_path_to_bucket_key(s3_job_folder_path)
     bucket_folder = bucket_folder[:-1]
 
-    local_job_path = os.path.join(local_base, "job.py")
-    job_path = upload_file_to_s3_from_path(local_job_path, bucket, "{}/job.py".format(bucket_folder))
-
+    # Check that there is at least a job.py in the given folder and then upload job if appropriate
+    if 'job.py' not in base_dir_listing :
+        if local_base.split('/')[-1] != 'shared_job_resources' :
+            raise ValueError("Could not find job.py in base directory provided, stopping. Only folder allowed to have no job.py is a folder named shared_job_resources")
+    else :
+        local_job_path = os.path.join(local_base, "job.py")
+        job_path = upload_file_to_s3_from_path(local_job_path, bucket, "{}/job.py".format(bucket_folder))
 
     # Upload all the .py or .zip files in resources
     # Check existence of folder, otherwise skip
@@ -426,7 +465,7 @@ def delete_all_target_data_from_database(database_metadata_path):
         delete_folder_from_bucket(bucket, bucket_folder)
 
 
-def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role, job_args = None, allocated_capacity = None, max_retries = None, max_concurrent_runs = None):
+def run_glue_job_from_local_folder_template(local_base, s3_glue_jobs_dir, name, role, job_args = None, allocated_capacity = None, max_retries = None, max_concurrent_runs = None):
     """
     Take a local folder layed out using our agreed folder spec, upload to s3, and run
 
@@ -434,6 +473,12 @@ def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role
     Also note that if the job_def dict already has a Name and Role keys it will be overwritten by the name and role inputs. 
     """
 
+    if local_base[-1] != "/":
+        local_base = local_base + "/"
+    if s3_glue_jobs_dir[-1] != '/'
+        s3_glue_jobs_dir = s3_glue_jobs_dir + '/' 
+
+    s3_base_path = ''.join([s3_glue_jobs_dir] + local_base.split('/')[-2:])
     # Create kwargs for job defintion these will be used in glue_create_job_defintion
     job_def_kwargs = {}
     job_def_kwargs['Name'] = name
