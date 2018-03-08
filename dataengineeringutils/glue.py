@@ -348,8 +348,8 @@ def glue_job_folder_to_s3(local_base, s3_glue_jobs_dir):
 
     # Check that there is at least a job.py in the given folder and then upload job if appropriate
     if 'job.py' not in base_dir_listing :
-        if local_base.split('/')[-1] != 'shared_job_resources' :
-            raise ValueError("Could not find job.py in base directory provided, stopping. Only folder allowed to have no job.py is a folder named shared_job_resources")
+        if local_base.split('/')[-2] != 'shared_job_resources' :
+            raise ValueError("Could not find job.py in base directory provided ({}), stopping.\nOnly folder allowed to have no job.py is a folder named shared_job_resources".format(local_base))
     else :
         local_job_path = os.path.join(local_base, "job.py")
         job_path = upload_file_to_s3_from_path(local_job_path, bucket, "{}/job.py".format(bucket_folder))
