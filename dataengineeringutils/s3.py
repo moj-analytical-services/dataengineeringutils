@@ -53,6 +53,13 @@ def upload_meta_data_folder_to_s3(meta_data_base_folder, bucket, output_meta_dat
 def delete_file_from_s3(bucket_name, key):
     s3_resource.Object(bucket_name, key).delete()
 
+def upload_directory_to_s3(dir_path, s3_dir_parent_path, regex = ".+(\.sql|\.json|\.csv|\.txt|\.py|\.sh)$") :
+    bucket, key = s3_path_to_bucket_key(s3_dir_parent_path)
+    for root, directories, filenames in os.walk('init'):
+    for filename in filenames: 
+        f = os.path.join(root,filename)
+        if re.match(regex, f) : 
+            upload_file_to_s3_from_path(f, bucket, key + f)
 
 def delete_folder_from_bucket(bucket, folder):
 
