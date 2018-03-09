@@ -449,7 +449,7 @@ def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs) :
     #Base path should be a folder.  Ensure ends in "/"
     # Otherwise listing the bucket could cause problems in e.g. the case there are two jobs, job_1 and job_12
 
-    (glue_job, resources, py_resources) = get_glue_job_and_resources_from_s3()
+    (glue_job, resources, py_resources) = get_glue_job_and_resources_from_s3(s3_base_path)
 
     kwargs["ScriptLocation"] = job_path
     if resources != '':
