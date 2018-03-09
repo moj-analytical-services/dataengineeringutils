@@ -65,7 +65,7 @@ def overwrite_or_create_database(db_name, db_description=""):
     Creates a database in Glue.  If it exists, delete it
     """
     db = {
-        "DatabaseInput": {
+        "DatabaseInput": { 
             "Description": db_description,
             "Name": db_name,
         }
@@ -288,8 +288,7 @@ def glue_job_dir_to_s3(local_glue_jobs_dir, s3_glue_jobs_dir, include_folders = 
     glue_job dir in s3. Each folder in local_glue_jobs_dir is uploaded using glue_job_folder_to_s3.
     Provide list of folder glue_job folder names in include_folders and exclude_folders to include and exclude them from the upload. 
     """
-    if local_glue_jobs_dir[-1] != '/' :
-        local_glue_jobs_dir = local_glue_jobs_dir + '/'
+    local_glue_jobs_dir = _end_with_backslack(local_glue_jobs_dir)
 
     # Do checks
     if not (include_folders is None or isinstance(include_folders, list)) :
@@ -312,8 +311,7 @@ def glue_job_dir_to_s3(local_glue_jobs_dir, s3_glue_jobs_dir, include_folders = 
     if exclude_folders is not None :
         glue_job_folders = [g for g in glue_job_folders if g not in exclude_folders]
 
-    if s3_glue_jobs_dir[-1] != '/' :
-        s3_glue_jobs_dir = s3_glue_jobs_dir + '/'
+    s3_glue_jobs_dir = _end_with_backslack(s3_glue_jobs_dir)
 
     for glue_job in glue_job_folders :
         glue_job_folder_to_s3(local_glue_jobs_dir + glue_job + '/', s3_glue_jobs_dir)
@@ -333,8 +331,7 @@ def glue_job_folder_to_s3(local_base, s3_glue_jobs_dir):
 
     The folder name base dir will be in the folder s3_path_to_glue_jobs_folder
     """
-    if local_base[-1] != '/' :
-        local_base = local_base + '/'
+    local_base = _end_with_backslack(local_base)
 
     base_dir_listing = os.listdir(local_base)
 
@@ -442,7 +439,7 @@ def get_glue_job_and_resources_from_s3(s3_base_path) :
     if " " in resources or " " in py_resources :
         raise ValueError("The files in glue_resources and glue_py_resources must not have spaces in their filenames")
     
-    return (glue_job, resources, py_resources)
+    return (job_path, resources, py_resources)
 
 def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs) :
     """
@@ -516,8 +513,7 @@ def run_glue_job_as_airflow_task(s3_glue_job_folder, name, role, job_args, delet
 
 def run_glue_job_from_s3_folder_template(s3_glue_job_folder, name, role, job_args = None, allocated_capacity = None, max_retries = None, max_concurrent_runs = None) :
     
-    if s3_glue_job_folder[-1] != '/' :
-        s3_glue_job_folder = s3_glue_job_folder + '/'
+    s3_glue_job_folder = _end_with_backslack(s3_glue_job_folder)
     
     job_def_kwargs = {}
     job_def_kwargs['Name'] = name
@@ -549,11 +545,8 @@ def run_glue_job_from_local_folder_template(local_base, s3_glue_jobs_dir, name, 
     job_args is a dictionary that is passed to the glue job when it is run on aws.
     """
 
-    if local_base[-1] != "/" :
-        local_base = local_base + "/"
-
-    if s3_glue_jobs_dir[-1] != '/' :
-        s3_glue_jobs_dir = s3_glue_jobs_dir + '/' 
+    local_base = s3_glue_job_folder(local_base)
+    s3_glue_jobs_dir = s3_glue_job_folder(s3_glue_jobs_dir)
 
     s3_base_path = ''.join([s3_glue_jobs_dir] + local_base.split('/')[-2:])
 
