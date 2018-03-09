@@ -519,8 +519,7 @@ def run_glue_job_from_local_folder_template(local_base, s3_glue_jobs_dir, name, 
     """
     Take a local folder layed out using our agreed folder spec, upload to s3, and run
 
-    job_def is a dictionary of arguments passed to create_glue_job_definition. If it is none it is given the bare minimum arguments needed: name and role.
-    Also note that if the job_def dict already has a Name and Role keys it will be overwritten by the name and role inputs. 
+    job_args is a dictionary that is passed to the glue job when it is run on aws.
     """
 
     if local_base[-1] != "/" :
@@ -530,6 +529,7 @@ def run_glue_job_from_local_folder_template(local_base, s3_glue_jobs_dir, name, 
         s3_glue_jobs_dir = s3_glue_jobs_dir + '/' 
 
     s3_base_path = ''.join([s3_glue_jobs_dir] + local_base.split('/')[-2:])
+
     # Create kwargs for job defintion these will be used in glue_create_job_defintion
     job_def_kwargs = {}
     job_def_kwargs['Name'] = name
@@ -542,7 +542,7 @@ def run_glue_job_from_local_folder_template(local_base, s3_glue_jobs_dir, name, 
         job_def_kwargs['MaxConcurrentRuns'] = max_concurrent_runs
 
     bucket, bucket_folder = s3_path_to_bucket_key(s3_base_path)
-
+    bucket_folder = bucket_folder + '/'
     delete_folder_from_bucket(bucket, bucket_folder)
 
     glue_job_folder_to_s3(local_base, s3_base_path)
