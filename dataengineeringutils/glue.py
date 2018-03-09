@@ -412,7 +412,7 @@ def get_glue_job_and_resources_from_s3(s3_base_path) :
     files_list = get_file_list_from_bucket(bucket, bucket_folder)
     
     if "{}/job.py".format(bucket_folder) not in files_list:
-        raise ValueError("Cannot find job.py in the folder specified, stopping")
+        raise ValueError("Cannot find job.py in the folder specified ({}), stopping".format(bucket_folder))
     else:
         job_path = "s3://{}/{}/job.py".format(bucket, bucket_folder)
 
