@@ -5,6 +5,7 @@ import re
 import os
 
 from dataengineeringutils.utils import _end_with_backslack
+
 s3_resource = boto3.resource('s3')
 s3_client = boto3.client('s3')
 
