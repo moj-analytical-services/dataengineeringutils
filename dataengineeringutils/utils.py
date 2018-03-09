@@ -39,3 +39,9 @@ def get_csv_header(file_path, convert_to_lower = False, strip_quotes = False) :
             column_names = [c.strip("'").strip('"') for c in column_names]
 
     return column_names
+
+def _end_with_backslack(string) :
+    if string[-1] != '/' :
+        return string + '/'
+    else :
+        return string
