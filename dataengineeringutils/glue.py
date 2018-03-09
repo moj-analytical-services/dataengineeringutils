@@ -490,7 +490,7 @@ def delete_all_target_data_from_database(database_metadata_path):
 
 def run_glue_job_as_airflow_task(s3_glue_job_folder, name, role, job_args, delete_job_when_done = True, init_wait_time = 2, interval_wait_time = 1, allocated_capacity = None, max_retries = None, max_concurrent_runs = None, **kwargs) :
 
-    start_job_response, job_spec = run_glue_job_from_s3_folder_template(s3_glue_job_folder, name, role, job_args = None, allocated_capacity = None, max_retries = None, max_concurrent_runs = None)
+    start_job_response, job_spec = run_glue_job_from_s3_folder_template(s3_glue_job_folder, name, role, job_args = job_args, allocated_capacity = allocated_capacity, max_retries = max_retries, max_concurrent_runs = max_concurrent_runs)
 
     # Let AWS spin up spark session (normally 2 mins if warmed up)
     time.sleep(init_wait_time*60)
