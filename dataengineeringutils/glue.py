@@ -332,6 +332,7 @@ def glue_job_folder_to_s3(local_base, s3_glue_jobs_dir):
     The folder name base dir will be in the folder s3_path_to_glue_jobs_folder
     """
     local_base = _end_with_backslack(local_base)
+    s3_glue_jobs_dir = _end_with_backslack(s3_glue_jobs_dir)
 
     base_dir_listing = os.listdir(local_base)
 
