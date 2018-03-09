@@ -506,8 +506,8 @@ def run_glue_job_from_s3_folder_template(s3_glue_job_folder, name, role, job_arg
     
     job_spec = glue_folder_in_s3_to_job_spec(s3_glue_job_folder, **job_def_kwargs)
 
-    response = glue_client.create_job(**job_spec)
     del_response = delete_job(name)
+    response = glue_client.create_job(**job_spec)
 
     if job_args:
         response = glue_client.start_job_run(JobName=name, Arguments = job_args)
