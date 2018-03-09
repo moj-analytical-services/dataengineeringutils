@@ -314,9 +314,9 @@ def glue_job_dir_to_s3(local_glue_jobs_dir, s3_glue_jobs_dir, include_folders = 
     s3_glue_jobs_dir = _end_with_backslack(s3_glue_jobs_dir)
 
     for glue_job in glue_job_folders :
-        glue_job_folder_to_s3(local_glue_jobs_dir + glue_job + '/', s3_glue_jobs_dir)
+        glue_job_folder_to_s3(local_glue_jobs_dir + glue_job + '/', s3_glue_jobs_dir + glue_job + '/')
 
-def glue_job_folder_to_s3(local_base, s3_glue_jobs_dir):
+def glue_job_folder_to_s3(local_base, s3_base_path):
     """
     Take a folder structure on local disk and transfer to s3.
 
@@ -332,17 +332,12 @@ def glue_job_folder_to_s3(local_base, s3_glue_jobs_dir):
     The folder name base dir will be in the folder s3_path_to_glue_jobs_folder
     """
     local_base = _end_with_backslack(local_base)
-    s3_glue_jobs_dir = _end_with_backslack(s3_glue_jobs_dir)
+    s3_base_path = _end_with_backslack(s3_base_path)
 
     base_dir_listing = os.listdir(local_base)
-
-    if s3_glue_jobs_dir[-1:] != "/":
-        raise ValueError("s3_glue_jobs_dir must be a folder and therefore must end in a /")
-
-    s3_job_folder_path = ''.join([s3_glue_jobs_dir] + local_base.split('/')[-2:])
     
     # Upload job
-    bucket, bucket_folder = s3_path_to_bucket_key(s3_job_folder_path)
+    bucket, bucket_folder = s3_path_to_bucket_key(s3_base_path)
     
     # Check that there is at least a job.py in the given folder and then upload job if appropriate
     if 'job.py' not in base_dir_listing :
@@ -539,7 +534,7 @@ def run_glue_job_from_s3_folder_template(s3_glue_job_folder, name, role, job_arg
        response = glue_client.start_job_run(JobName=name)
     return response, job_spec
 
-def run_glue_job_from_local_folder_template(local_base, s3_glue_jobs_dir, name, role, job_args = None, allocated_capacity = None, max_retries = None, max_concurrent_runs = None):
+def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role, job_args = None, allocated_capacity = None, max_retries = None, max_concurrent_runs = None):
     """
     Take a local folder layed out using our agreed folder spec, upload to s3, and run
 
@@ -547,9 +542,7 @@ def run_glue_job_from_local_folder_template(local_base, s3_glue_jobs_dir, name, 
     """
 
     local_base = _end_with_backslack(local_base)
-    s3_glue_jobs_dir = _end_with_backslack(s3_glue_jobs_dir)
-
-    s3_base_path = ''.join([s3_glue_jobs_dir] + local_base.split('/')[-2:])
+    s3_base_path = _end_with_backslack(s3_base_path)
 
     # Create kwargs for job defintion these will be used in glue_create_job_defintion
     job_def_kwargs = {}
