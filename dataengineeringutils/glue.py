@@ -5,6 +5,7 @@ import numpy as np
 import boto3
 import json
 import pkg_resources
+import time
 from urllib.request import urlretrieve
 import dataengineeringutils.meta as meta_utils
 from dataengineeringutils.datatypes import translate_metadata_type_to_type
@@ -464,6 +465,55 @@ def delete_all_target_data_from_database(database_metadata_path):
         bucket, bucket_folder = s3_path_to_bucket_key(location)
         delete_folder_from_bucket(bucket, bucket_folder)
 
+def run_glue_job_as_airflow_task(s3_glue_job_folder, name, role, job_args, delete_job_when_done = True, init_wait_time = 2, interval_wait_time = 1, allocated_capacity = None, max_retries = None, max_concurrent_runs = None, **kwargs) :
+
+    start_job_response, job_spec = run_glue_job_from_s3_folder_template(s3_glue_job_folder, name, role, job_args = None, allocated_capacity = None, max_retries = None, max_concurrent_runs = None)
+
+    # Let AWS spin up spark session (normally 2 mins if warmed up)
+    time.sleep(init_wait_time*60)
+
+    job_running = True
+    while job_running :
+        job_status = glue_client.get_job_run(JobName = name, RunId = start_job_response['JobRunId'])
+        if job_status['JobRun']['JobRunState'].lower() == 'running' :
+            time.sleep(interval_wait_time*60)
+        elif job_status['JobRun']['JobRunState'].lower() == 'succeeded' :
+            job_running = False
+        else :
+            raise ValueError('Something bad happened.\nJob state was: {} (Note job not deleted).\n***OUTPUTING JOB ERROR***\n{}'.format(job_status['JobRun']['JobRunState'].lower(), job_status['JobRun']['ErrorMessage']))
+
+    if delete_job_when_done :
+        cleanup_response = glue_client.delete_job(JobName = name)
+
+    return start_job_response['JobRunId']
+
+def run_glue_job_from_s3_folder_template(s3_glue_job_folder, name, role, job_args = None, allocated_capacity = None, max_retries = None, max_concurrent_runs = None) :
+    
+    if s3_glue_job_folder[-1] != '/' :
+        s3_glue_job_folder = s3_glue_job_folder + '/'
+    
+    job_def_kwargs = {}
+    job_def_kwargs['Name'] = name
+    job_def_kwargs['Role'] = role
+    if allocated_capacity is not None :
+        job_def_kwargs['AllocatedCapacity'] = allocated_capacity
+    if max_retries is not None :
+        job_def_kwargs['MaxRetries'] = max_retries
+    if max_concurrent_runs is not None :
+        job_def_kwargs['MaxConcurrentRuns'] = max_concurrent_runs
+
+    bucket, bucket_folder = s3_path_to_bucket_key(s3_glue_job_folder)
+    
+    job_spec = glue_folder_in_s3_to_job_spec(s3_glue_job_folder, **job_def_kwargs)
+
+    response = glue_client.create_job(**job_spec)
+    del_response = delete_job(name)
+
+    if job_args:
+        response = glue_client.start_job_run(JobName=name, Arguments = job_args)
+    else:
+       response = glue_client.start_job_run(JobName=name)
+    return response, job_spec
 
 def run_glue_job_from_local_folder_template(local_base, s3_glue_jobs_dir, name, role, job_args = None, allocated_capacity = None, max_retries = None, max_concurrent_runs = None):
     """
