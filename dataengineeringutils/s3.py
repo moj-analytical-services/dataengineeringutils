@@ -58,12 +58,9 @@ def delete_file_from_s3(bucket_name, key):
 def upload_directory_to_s3(dir_path, s3_dir_parent_path, regex = ".+(\.sql|\.json|\.csv|\.txt|\.py|\.sh)$") :
     
     # Make sure folder paths are correct
-    if dir_path[-1] != '/' :
-        dir_path = dir_path + '/'
-
-    if s3_dir_parent_path[-1] != '/' :
-        s3_dir_parent_path = s3_dir_parent_path + '/'
-
+    dir_path = _end_with_backslack(dir_path)
+    s3_dir_parent_path = _end_with_backslack(s3_dir_parent_path)
+    
     dir_path_prefix = '/'.join(dir_path.split('/')[:-2])
     if dir_path_prefix != '' :
         dir_path_prefix = dir_path_prefix + '/'
