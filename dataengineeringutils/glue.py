@@ -449,7 +449,7 @@ def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs) :
     #Base path should be a folder.  Ensure ends in "/"
     # Otherwise listing the bucket could cause problems in e.g. the case there are two jobs, job_1 and job_12
 
-    (glue_job, resources, py_resources) = get_glue_job_and_resources_from_s3(s3_base_path)
+    (job_path, resources, py_resources) = get_glue_job_and_resources_from_s3(s3_base_path)
 
     kwargs["ScriptLocation"] = job_path
     if resources != '':
@@ -545,8 +545,8 @@ def run_glue_job_from_local_folder_template(local_base, s3_glue_jobs_dir, name, 
     job_args is a dictionary that is passed to the glue job when it is run on aws.
     """
 
-    local_base = s3_glue_job_folder(local_base)
-    s3_glue_jobs_dir = s3_glue_job_folder(s3_glue_jobs_dir)
+    local_base = _end_with_backslack(local_base)
+    s3_glue_jobs_dir = _end_with_backslack(s3_glue_jobs_dir)
 
     s3_base_path = ''.join([s3_glue_jobs_dir] + local_base.split('/')[-2:])
 
