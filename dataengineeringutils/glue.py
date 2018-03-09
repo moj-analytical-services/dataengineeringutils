@@ -10,7 +10,7 @@ from urllib.request import urlretrieve
 import dataengineeringutils.meta as meta_utils
 from dataengineeringutils.datatypes import translate_metadata_type_to_type
 from dataengineeringutils.utils import dict_merge, read_json, _end_with_backslack
-from dataengineeringutils.s3 import s3_path_to_bucket_key, upload_file_to_s3_from_path, delete_folder_from_bucket, get_file_list_from_bucket
+from dataengineeringutils.s3 import s3_path_to_bucket_key, upload_file_to_s3_from_path, delete_folder_from_bucket, get_file_list_from_bucket, s3_path_to_bytes_io
 
 from io import StringIO
 glue_client = boto3.client('glue', 'eu-west-1')
@@ -444,6 +444,8 @@ def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs) :
 
     #Base path should be a folder.  Ensure ends in "/"
     # Otherwise listing the bucket could cause problems in e.g. the case there are two jobs, job_1 and job_12
+    s3_base_path = _end_with_backslack(s3_base_path)
+    bucket, bucket_folder = s3_path_to_bucket_key(s3_base_path)
 
     (job_path, resources, py_resources) = get_glue_job_and_resources_from_s3(s3_base_path)
 
@@ -459,7 +461,7 @@ def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs) :
     return job_spec
 
 def get_list_of_files_from_s3_text_file(s3_path_to_text_file) :
-    bytes_io = s3.s3_path_to_bytes_io(s3_path_to_text_file)
+    bytes_io = s3_path_to_bytes_io(s3_path_to_text_file)
     resources = []
     for line in bytes_io.readlines():
         resources.append(line.decode("utf-8"))
