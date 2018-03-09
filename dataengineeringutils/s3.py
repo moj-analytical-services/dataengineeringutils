@@ -104,3 +104,9 @@ def first_n_bytes_of_s3_object_to_lines(s3_path, num_bytes=1024, encoding="utf-8
     text = obj.get()['Body'].read(num_bytes).decode(encoding)
     lines = text.splitlines()
     return lines
+
+def get_file_list_from_bucket(bucket, bucket_folder) :
+    bucket_folder = _end_with_backslack(bucket_folder)
+    contents = s3_client.list_objects(Bucket=bucket, Prefix=bucket_folder)
+    files_list = [c["Key"] for c in contents["Contents"]]
+    return files_list

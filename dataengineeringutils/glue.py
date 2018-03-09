@@ -9,8 +9,8 @@ import time
 from urllib.request import urlretrieve
 import dataengineeringutils.meta as meta_utils
 from dataengineeringutils.datatypes import translate_metadata_type_to_type
-from dataengineeringutils.utils import dict_merge, read_json
-from dataengineeringutils.s3 import s3_path_to_bucket_key, upload_file_to_s3_from_path, delete_folder_from_bucket
+from dataengineeringutils.utils import dict_merge, read_json, _end_with_backslack
+from dataengineeringutils.s3 import s3_path_to_bucket_key, upload_file_to_s3_from_path, delete_folder_from_bucket, get_file_list_from_bucket
 
 from io import StringIO
 glue_client = boto3.client('glue', 'eu-west-1')
@@ -401,50 +401,77 @@ def glue_job_folder_to_s3(local_base, s3_glue_jobs_dir):
         # Remember to delete the files we downloaded
         for this_path in delete_these_paths:
             os.remove(this_path)
+    
+def get_glue_job_and_resources_from_s3(s3_base_path) :
+    
+    s3_base_path = _end_with_backslack(s3_base_path)
+    
+    bucket, bucket_folder = s3_path_to_bucket_key(s3_base_path)
+    bucket_folder = bucket_folder[:-1]
+    
+    shared_bucket_folder = '/'.join(bucket_folder.split('/')[:-1]) + '/shared_job_resources'
+    
+    files_list = get_file_list_from_bucket(bucket, bucket_folder)
+    
+    if "{}/job.py".format(bucket_folder) not in files_list:
+        raise ValueError("Cannot find job.py in the folder specified, stopping")
+    else:
+        job_path = "s3://{}/{}/job.py".format(bucket, bucket_folder)
 
+    try : 
+        shared_files_list = get_file_list_from_bucket(bucket, shared_bucket_folder)
+    except :
+        shared_files_list = []
+    
+    # Do py_resources
+    py_resources = [f for f in files_list if "/glue_py_resources/" in f]
+    py_shared_resources = [f for f in shared_files_list if "/glue_py_resources/" in f]
+    
+    py_resources = py_resources + py_shared_resources
+    py_resources = ["s3://{}/{}".format(bucket, f) for f in py_resources]
+    py_resources = ",".join(py_resources)
+    
+    # Do resources
+    resources = [f for f in files_list if "/glue_resources/" in f]
+    shared_resources = [f for f in shared_files_list if "/glue_resources/" in f]
+    
+    resources = resources + shared_resources
+    resources = ["s3://{}/{}".format(bucket, f) for f in resources]
+    resources = ",".join(resources)
+    
+    if " " in resources or " " in py_resources :
+        raise ValueError("The files in glue_resources and glue_py_resources must not have spaces in their filenames")
+    
+    return (glue_job, resources, py_resources)
 
-def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs):
+def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs) :
     """
     Given a set of files uploaded to s3 in a specific format, use them to create a glue job
     """
 
     #Base path should be a folder.  Ensure ends in "/"
     # Otherwise listing the bucket could cause problems in e.g. the case there are two jobs, job_1 and job_12
-    if s3_base_path[-1] != "/":
-        s3_base_path = s3_base_path + "/"
 
-    bucket, bucket_folder = s3_path_to_bucket_key(s3_base_path)
-    bucket_folder = bucket_folder[:-1]
-
-    contents = s3_client.list_objects(Bucket=bucket, Prefix=bucket_folder + "/")
-    files_list = [c["Key"] for c in contents["Contents"]]
-
-    if "{}/job.py".format(bucket_folder) not in files_list:
-        raise ValueError("Cannot find job.py in the folder specified, stopping")
-    else:
-        job_path = "s3://{}/{}/job.py".format(bucket, bucket_folder)
-
-    py_resources = [f for f in files_list if "/glue_py_resources/" in f]
-    py_resources = ["s3://{}/{}".format(bucket, f) for f in py_resources]
-    py_resources = ",".join(py_resources)
-
-    resources = [f for f in files_list if "/glue_resources/" in f]
-    resources = ["s3://{}/{}".format(bucket,f) for f in resources]
-    resources = ",".join(resources)
-
-    if " " in resources or " " in py_resources:
-        raise ValueError("The files in glue_resources and glue_py_resources must not have spaces in their filenames")
+    (glue_job, resources, py_resources) = get_glue_job_and_resources_from_s3()
 
     kwargs["ScriptLocation"] = job_path
-    if resources:
+    if resources != '':
         kwargs["extra-files"] = resources
-    if py_resources:
+    if py_resources != '':
         kwargs["extra-py-files"] = py_resources
     kwargs["TempDir"] = "s3://{}/{}/{}/temp_dir/".format(bucket, bucket_folder, kwargs["Name"])
 
     job_spec = create_glue_job_definition(**kwargs)
 
     return job_spec
+
+def get_list_of_files_from_s3_text_file(s3_path_to_text_file) :
+    bytes_io = s3.s3_path_to_bytes_io(s3_path_to_text_file)
+    resources = []
+    for line in bytes_io.readlines():
+        resources.append(line.decode("utf-8"))
+
+    return resources
 
 def delete_all_target_data_from_database(database_metadata_path):
     files = os.listdir(database_metadata_path)
