@@ -9,7 +9,7 @@ import time
 from urllib.request import urlretrieve
 import dataengineeringutils.meta as meta_utils
 from dataengineeringutils.datatypes import translate_metadata_type_to_type
-from dataengineeringutils.utils import dict_merge, read_json, _end_with_backslack
+from dataengineeringutils.utils import dict_merge, read_json, _end_with_slash
 from dataengineeringutils.s3 import s3_path_to_bucket_key, upload_file_to_s3_from_path, delete_folder_from_bucket, get_file_list_from_bucket, s3_path_to_bytes_io
 
 from io import StringIO
@@ -282,13 +282,13 @@ def metadata_folder_to_database(folder_path, delete_db = True, db_suffix = None)
         populate_glue_catalogue_from_metadata(table_metadata, db_metadata, check_existence=False)
 
 
-def glue_job_dir_to_s3(local_glue_jobs_dir, s3_glue_jobs_dir, include_folders = None, exclude_folders = None) :
+def all_glue_job_folders_to_s3(local_glue_jobs_dir, s3_glue_jobs_dir, include_folders = None, exclude_folders = None) :
     """
     Iterate though all folders in the glue_job dir and upload them to a corresponsing 
     glue_job dir in s3. Each folder in local_glue_jobs_dir is uploaded using glue_job_folder_to_s3.
     Provide list of folder glue_job folder names in include_folders and exclude_folders to include and exclude them from the upload. 
     """
-    local_glue_jobs_dir = _end_with_backslack(local_glue_jobs_dir)
+    local_glue_jobs_dir = _end_with_slash(local_glue_jobs_dir)
 
     # Do checks
     if not (include_folders is None or isinstance(include_folders, list)) :
@@ -311,7 +311,7 @@ def glue_job_dir_to_s3(local_glue_jobs_dir, s3_glue_jobs_dir, include_folders = 
     if exclude_folders is not None :
         glue_job_folders = [g for g in glue_job_folders if g not in exclude_folders]
 
-    s3_glue_jobs_dir = _end_with_backslack(s3_glue_jobs_dir)
+    s3_glue_jobs_dir = _end_with_slash(s3_glue_jobs_dir)
 
     for glue_job in glue_job_folders :
         glue_job_folder_to_s3(local_glue_jobs_dir + glue_job + '/', s3_glue_jobs_dir + glue_job + '/')
@@ -331,8 +331,8 @@ def glue_job_folder_to_s3(local_base, s3_base_path):
 
     The folder name base dir will be in the folder s3_path_to_glue_jobs_folder
     """
-    local_base = _end_with_backslack(local_base)
-    s3_base_path = _end_with_backslack(s3_base_path)
+    local_base = _end_with_slash(local_base)
+    s3_base_path = _end_with_slash(s3_base_path)
 
     base_dir_listing = os.listdir(local_base)
     
@@ -398,7 +398,7 @@ def glue_job_folder_to_s3(local_base, s3_base_path):
     
 def get_glue_job_and_resources_from_s3(s3_base_path) :
     
-    s3_base_path = _end_with_backslack(s3_base_path)
+    s3_base_path = _end_with_slash(s3_base_path)
     
     bucket, bucket_folder = s3_path_to_bucket_key(s3_base_path)
     bucket_folder = bucket_folder[:-1]
@@ -445,7 +445,7 @@ def glue_folder_in_s3_to_job_spec(s3_base_path, **kwargs) :
 
     #Base path should be a folder.  Ensure ends in "/"
     # Otherwise listing the bucket could cause problems in e.g. the case there are two jobs, job_1 and job_12
-    s3_base_path = _end_with_backslack(s3_base_path)
+    s3_base_path = _end_with_slash(s3_base_path)
     bucket, bucket_folder = s3_path_to_bucket_key(s3_base_path)
 
     (job_path, resources, py_resources) = get_glue_job_and_resources_from_s3(s3_base_path)
@@ -512,7 +512,7 @@ def run_glue_job_as_airflow_task(s3_glue_job_folder, name, role, job_args, delet
 
 def run_glue_job_from_s3_folder_template(s3_glue_job_folder, name, role, job_args = None, allocated_capacity = None, max_retries = None, max_concurrent_runs = None) :
     
-    s3_glue_job_folder = _end_with_backslack(s3_glue_job_folder)
+    s3_glue_job_folder = _end_with_slash(s3_glue_job_folder)
     
     job_def_kwargs = {}
     job_def_kwargs['Name'] = name
@@ -544,8 +544,8 @@ def run_glue_job_from_local_folder_template(local_base, s3_base_path, name, role
     job_args is a dictionary that is passed to the glue job when it is run on aws.
     """
 
-    local_base = _end_with_backslack(local_base)
-    s3_base_path = _end_with_backslack(s3_base_path)
+    local_base = _end_with_slash(local_base)
+    s3_base_path = _end_with_slash(s3_base_path)
 
     # Create kwargs for job defintion these will be used in glue_create_job_defintion
     job_def_kwargs = {}

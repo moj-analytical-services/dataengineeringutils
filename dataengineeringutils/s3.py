@@ -4,7 +4,7 @@ import boto3
 import re
 import os
 
-from dataengineeringutils.utils import _end_with_backslack
+from dataengineeringutils.utils import _end_with_slash
 
 s3_resource = boto3.resource('s3')
 s3_client = boto3.client('s3')
@@ -58,8 +58,8 @@ def delete_file_from_s3(bucket_name, key):
 def upload_directory_to_s3(dir_path, s3_dir_parent_path, regex = ".+(\.sql|\.json|\.csv|\.txt|\.py|\.sh)$") :
     
     # Make sure folder paths are correct
-    dir_path = _end_with_backslack(dir_path)
-    s3_dir_parent_path = _end_with_backslack(s3_dir_parent_path)
+    dir_path = _end_with_slash(dir_path)
+    s3_dir_parent_path = _end_with_slash(s3_dir_parent_path)
     
     dir_path_prefix = '/'.join(dir_path.split('/')[:-2])
     if dir_path_prefix != '' :
@@ -105,7 +105,7 @@ def first_n_bytes_of_s3_object_to_lines(s3_path, num_bytes=1024, encoding="utf-8
     return lines
 
 def get_file_list_from_bucket(bucket, bucket_folder) :
-    bucket_folder = _end_with_backslack(bucket_folder)
+    bucket_folder = _end_with_slash(bucket_folder)
     contents = s3_client.list_objects(Bucket=bucket, Prefix=bucket_folder)
     files_list = [c["Key"] for c in contents["Contents"]]
     return files_list

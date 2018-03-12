@@ -40,7 +40,7 @@ def get_csv_header(file_path, convert_to_lower = False, strip_quotes = False) :
 
     return column_names
 
-def _end_with_backslack(string) :
+def _end_with_slash(string) :
     if string[-1] != '/' :
         return string + '/'
     else :
