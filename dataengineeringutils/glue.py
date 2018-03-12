@@ -243,7 +243,7 @@ def populate_glue_catalogue_from_metadata(table_metadata, db_metadata, check_exi
         TableInput=tbl_def)
 
 
-def metadata_folder_to_database(folder_path, delete_db = True, db_suffix = None):
+def metadata_folder_to_database(folder_path, delete_db = True, db_suffix = None, explicit_database_name = None, explicit_database_location = None):
     """
     Take a metadata folder and build the database and all tables
     Args:
@@ -263,6 +263,18 @@ def metadata_folder_to_database(folder_path, delete_db = True, db_suffix = None)
             db_metadata["location"] = db_metadata["location"] + str_to_add
             db_metadata["name"] = db_metadata["name"] + str_to_add
 
+        # Added this code to allow user to self define locations (for creation of near duplicate databases for different users)
+        if explicit_database_name is not None :
+            db_metadata["name"] = explicit_database_name
+
+        if explicit_database_location is not None :
+            if db_metadata["location"][-1] == "/" :
+                db_metadata["location"] = db_metadata["location"][:-1]
+            if explicit_database_location[0] == '/' :
+                db_metadata["location"] = db_metadata["location"] + explicit_database_location
+            else :
+                db_metadata["location"] = explicit_database_location
+        
         database_name = db_metadata["name"]
 
         try:
