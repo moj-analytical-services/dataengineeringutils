@@ -249,7 +249,14 @@ def metadata_folder_to_database(folder_path, delete_db = True, db_suffix = None,
     Args:
         delete_db bool: Delete the database before starting
         db_suffix: If provided, metadata will be modified so that the database name, and s3 data locations include the folder suffix
+        explicit_database_name: if not None the database name in glue will be set to the string specified in explicit_database_location
+        explicit_database_location: if not None the database location in glue will be set to the string specified in explicit_database_location.
+        If explicit_database_location starts with s3:// Then the function will assume that the string provided is the full path to the database folder. Otherwise, the function
+        will assume that explicit_database_location is a prefix to be added to the current location in the original json.
+
+        If explicit_database_name or explicit_database_location are not None then it is advised to leave db_suffix as None or vis-versa.
     """
+
     files = os.listdir(folder_path)
     files = set([f for f in files if re.match(".+\.json$", f)])
 
@@ -270,7 +277,7 @@ def metadata_folder_to_database(folder_path, delete_db = True, db_suffix = None,
         if explicit_database_location is not None :
             if db_metadata["location"][-1] == "/" :
                 db_metadata["location"] = db_metadata["location"][:-1]
-            if explicit_database_location[0] == '/' :
+            if 's3://' not in explicit_database_location :
                 db_metadata["location"] = db_metadata["location"] + explicit_database_location
             else :
                 db_metadata["location"] = explicit_database_location
