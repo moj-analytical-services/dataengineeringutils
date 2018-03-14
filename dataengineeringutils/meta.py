@@ -90,7 +90,7 @@ class Meta :
 
     def set_columns_as_file_partitions(self, list_of_cols = None) :
         if list_of_cols is None :
-            self.meta["glue_specific"] = None
+            del self.meta["glue_specific"]
     
         else :
             self.meta["glue_specific"] = {"PartitionKeys" : []}
