@@ -6,3 +6,4 @@ boolean,boolean,BooleanType
 datetime,timestamp,TimestampType
 date,date,DateType
 double,double,DoubleType
+long,bigint,LongType

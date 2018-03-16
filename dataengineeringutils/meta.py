@@ -2,7 +2,7 @@ from dataengineeringutils.utils import read_json, write_json
 from copy import copy
 class Meta :
 
-    supported_column_types = ('int', 'character', 'float', 'date', 'datetime', 'boolean')
+    supported_column_types = ('int', 'character', 'float', 'date', 'datetime', 'boolean', 'long')
     supported_data_formats = ('avro', 'csv', 'csv_quoted_nodate', 'regex', 'orc', 'par', 'parquet')
 
     def __init__(self, filepath) :
