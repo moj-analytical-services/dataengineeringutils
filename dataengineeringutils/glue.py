@@ -180,6 +180,7 @@ def get_glue_column_spec_from_metadata(metadata):
         new_c["Comment"] = c["description"]
         new_c["Type"] = translate_metadata_type_to_type(c["type"], "glue")
         glue_columns.append(new_c)
+    
     return glue_columns
 
 
@@ -207,8 +208,10 @@ def metadata_to_glue_table_definition(tbl_metadata, db_metadata):
 
         # If there are partition keys, remove them from table
         if "PartitionKeys" in tbl_metadata["glue_specific"]:
-            pks = tbl_metadata["glue_specific"]["PartitionKeys"]
-            pk_names = [pk["Name"] for pk in pks]
+            pk_names = []
+            for p in tbl_metadata["glue_specific"]["PartitionKeys"] :
+                p["Type"] = translate_metadata_type_to_type(p["Type"], "glue")
+                pk_names.append(p["Name"])
             cols = table_definition["StorageDescriptor"]["Columns"]
             cols = [col for col in cols if col["Name"] not in pk_names]
             table_definition["StorageDescriptor"]["Columns"] = cols

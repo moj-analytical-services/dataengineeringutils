@@ -4,7 +4,7 @@ class Meta :
 
     supported_column_types = ('int', 'character', 'float', 'date', 'datetime', 'boolean', 'long')
     supported_data_formats = ('avro', 'csv', 'csv_quoted_nodate', 'regex', 'orc', 'par', 'parquet')
-
+    
     def __init__(self, filepath) :
         self.meta = read_json(filepath)
         self.__update_column_names()
@@ -89,9 +89,9 @@ class Meta :
         self.__update_column_names()
 
     def set_columns_as_file_partitions(self, list_of_cols = None) :
+        
         if list_of_cols is None :
             del self.meta["glue_specific"]
-    
         else :
             self.meta["glue_specific"] = {"PartitionKeys" : []}
             for c in list_of_cols :
