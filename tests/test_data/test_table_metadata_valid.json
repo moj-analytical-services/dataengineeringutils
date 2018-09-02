@@ -1,0 +1,44 @@
+{
+    "$schema": "https://raw.githubusercontent.com/moj-analytical-services/etl_manager/schema/etl_manager/specs/table_schema.json",
+    "name": "temp",
+    "description": "desc",
+    "data_format": "csv",
+    "columns": [
+        { "name":"myint",
+            "type":"int",
+            "description":"myint"
+          },
+          { "name":"myfloat",
+            "type":"float",
+            "description":"myfloat"
+          },
+          { "name":"mychar",
+            "type":"character",
+            "description":"mychar"
+          },
+          { "name":"mydate",
+            "type":"date",
+            "description":"mydate"
+          },
+          { "name":"mydatetime",
+            "type":"datetime",
+            "description":"mydatetime"
+          },
+          { "name":"myboolean",
+            "type":"boolean",
+            "description":"myboolean"
+          },
+          { "name":"mydouble",
+            "type":"double",
+            "description":"mydouble"
+          },
+          { "name":"mylong",
+            "type":"long",
+            "description":"mylong"
+          }
+    ],
+    "partitions": [],
+    "location": "temp/"
+}
+
+

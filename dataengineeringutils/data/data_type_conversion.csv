@@ -1,9 +1,9 @@
-metadata,glue,spark
-character,string,StringType
-int,int,IntegerType
-float,float,FloatType
-boolean,boolean,BooleanType
-datetime,timestamp,TimestampType
-date,date,DateType
-double,double,DoubleType
-long,bigint,LongType
+metadata,glue,spark,pandas,comment
+character,string,StringType,object,see https://stackoverflow.com/questions/34881079/pandas-distinction-between-str-and-object-types
+int,int,IntegerType,float,pandas doesn't allow nulls in int columns so have to use float
+float,float,FloatType,float,
+boolean,boolean,BooleanType,bool,
+datetime,timestamp,TimestampType,object,you have to specify parse_dates in pandas
+date,date,DateType,object,pandas doesn't really have a datetime type it expects datetimes use parse_dates
+double,double,DoubleType,float,
+long,bigint,LongType,float,pandas doesn't allow nulls in int columns so have to use float
