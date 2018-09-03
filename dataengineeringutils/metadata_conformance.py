@@ -4,6 +4,9 @@ import pandas as pd
 import numpy as np
 
 def _get_np_datatype_from_metadata(col_name, table_metadata):
+    """
+    Lookup the datatype from the metadata, and our conversion table
+    """
 
     columns_metadata = table_metadata["columns"]
     with pkg_resources.resource_stream(__name__, "data/data_type_conversion.csv") as io:
@@ -25,7 +28,8 @@ def _get_np_datatype_from_metadata(col_name, table_metadata):
 
 def _pd_dtype_dict_from_metadata(table_metadata):
     """
-    Convert the table metadata to the dtype dict
+    Convert the table metadata to the dtype dict that needs to be
+    passed to the dtype argument of pd.read_csv
     """
 
     with pkg_resources.resource_stream(__name__, "data/data_type_conversion.csv") as io:
@@ -65,7 +69,6 @@ def _pd_date_parse_list_from_metadatadata(table_metadata):
 
     return parse_dates
 
-
 def pd_read_csv_using_metadata(filepath_or_buffer, table_metadata, *args, **kwargs):
     """
     Use pandas to read a csv imposing the datatypes specified in the table_metadata
@@ -77,9 +80,11 @@ def pd_read_csv_using_metadata(filepath_or_buffer, table_metadata, *args, **kwar
 
     return pd.read_csv(filepath_or_buffer, dtype = dtype, parse_dates = parse_dates, *args, **kwargs)
 
-def _pd_df_contains_same_columns_as_metadata(df, table_metadata):
+def _pd_df_cols_match_metadata_cols(df, table_metadata):
     """
-    Check a pandas dataframe contains the same columns as those specified in the table metadata
+    Is the set of columns in the metadata equal to the set of columns in the dataframe?
+
+    This check is irrespective of column order, does not check for duplicates.
     """
 
     pd_columns = set(df.columns)
@@ -87,29 +92,36 @@ def _pd_df_contains_same_columns_as_metadata(df, table_metadata):
 
     return pd_columns == md_columns
 
-def _check_pd_df_contains_same_columns_as_metadata(df, table_metadata):
+def _check_pd_df_cols_match_metadata_cols(df, table_metadata):
 
-    if not _pd_df_contains_same_columns_as_metadata(df, table_metadata):
+    if not _pd_df_cols_match_metadata_cols(df, table_metadata):
         raise ValueError("Your pandas dataframe contains different columns to your metadata")
 
 
-def _pd_df_cols_matches_metadata_column_ordered(df, table_metadata):
+def _pd_df_cols_match_metadata_cols_ordered(df, table_metadata):
+    """
+    Are the columns in the metadata exactly the same as those in the dataframe
+    i.e. same columns in the same order
+    """
 
     pd_columns = list(df.columns)
     md_columns = [c["name"] for c in table_metadata["columns"]]
 
     return pd_columns == md_columns
 
-def _check_pd_df_cols_matches_metadata_column_ordered(df, table_metadata):
+def _check_pd_df_cols_match_metadata_cols_ordered(df, table_metadata):
 
-    if not _pd_df_contains_same_columns_as_metadata(df, table_metadata):
+    if not _pd_df_cols_match_metadata_cols(df, table_metadata):
         raise ValueError("Your pandas dataframe contains different columns to your metadata")
 
-    if not _pd_df_cols_matches_metadata_column_ordered(df, table_metadata):
+    if not _pd_df_cols_match_metadata_cols_ordered(df, table_metadata):
         raise ValueError("Your pandas dataframe contains different columns to your metadata")
 
 
-def pd_df_conforms_to_metadata_data_types(df, table_metadata):
+def pd_df_datatypes_match_metadata_data_types(df, table_metadata):
+    """
+
+    """
 
     expected_dtypes = _pd_dtype_dict_from_metadata(table_metadata)
     date_cols = _pd_date_parse_list_from_metadatadata(table_metadata)
@@ -124,21 +136,21 @@ def pd_df_conforms_to_metadata_data_types(df, table_metadata):
 
     return actual_numpy_types == expected_dtypes
 
-def _check_pd_df_conforms_to_metadata_data_types(df, table_metadata):
+def _check_pd_df_datatypes_match_metadata_data_types(df, table_metadata):
 
-    if not pd_df_conforms_to_metadata_data_types(df, table_metadata):
+    if not pd_df_datatypes_match_metadata_data_types(df, table_metadata):
         raise ValueError("Your pandas dataframe contains different datatypes to those expected by the metadata")
 
 
 def check_pd_df_exactly_conforms_to_metadata(df, table_metadata):
 
-    if not _pd_df_contains_same_columns_as_metadata(df, table_metadata):
+    if not _pd_df_cols_match_metadata_cols(df, table_metadata):
             raise ValueError("Your pandas dataframe contains different columns to your metadata")
 
-    if not _pd_df_cols_matches_metadata_column_ordered(df, table_metadata):
+    if not _pd_df_cols_match_metadata_cols_ordered(df, table_metadata):
         raise ValueError("Your pandas dataframe contains different columns to your metadata")
 
-    if not pd_df_conforms_to_metadata_data_types(df, table_metadata):
+    if not pd_df_datatypes_match_metadata_data_types(df, table_metadata):
         raise ValueError("Your pandas dataframe contains different datatypes to those expected by the metadata")
 
 
@@ -180,10 +192,13 @@ def impose_metadata_column_order_on_pd_df(df, table_metadata, create_cols_if_not
     return df[md_cols]
 
 
-def impose_metadata_data_types_on_pd_df(df, table_metadata):
+def impose_metadata_data_types_on_pd_df(df, table_metadata, errors='raise'):
     """
     Impost correct data type on all columns in metadata.
     Doesn't modify columns not in metadata
+
+    Allows you to pass arguments through to the astype e.g. to errors = 'ignore'
+    https://pandas.pydata.org/pandas-docs/stable/generated/pandas.Series.astype.html
     """
 
     df_cols_set = set(df.columns)
@@ -200,14 +215,14 @@ def impose_metadata_data_types_on_pd_df(df, table_metadata):
         actual_type = df[col].dtype.type
 
         if expected_type != actual_type:
-            df[col] = df[col].astype(expected_type)
+            df[col] = df[col].astype(expected_type, errors=errors)
 
     for col in try_convert_date:
         expected_type = np.typeDict["Datetime64"]
         actual_type = df[col].dtype.type
 
         if expected_type != actual_type:
-            df[col] = pd.to_datetime(df[col])
+            df[col] = pd.to_datetime(df[col], errors=errors)
 
     return df
 
