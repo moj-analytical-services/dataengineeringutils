@@ -3,6 +3,26 @@ import json
 import pandas as pd
 import numpy as np
 
+def _get_np_datatype_from_metadata(col_name, table_metadata):
+
+    columns_metadata = table_metadata["columns"]
+    with pkg_resources.resource_stream(__name__, "data/data_type_conversion.csv") as io:
+        type_conversion = pd.read_csv(io)
+    type_conversion = type_conversion.set_index("metadata")
+    type_conversion_dict = type_conversion.to_dict(orient="index")
+
+    col = None
+    for c in columns_metadata:
+        if c["name"] == col_name:
+            col = c
+
+    if col:
+        agnostic_type = col["type"]
+        numpy_type = type_conversion_dict[agnostic_type]["pandas"]
+        return np.typeDict[numpy_type]
+    else:
+        return None
+
 def _pd_dtype_dict_from_metadata(table_metadata):
     """
     Convert the table metadata to the dtype dict
@@ -104,30 +124,29 @@ def pd_df_conforms_to_metadata_data_types(df, table_metadata):
 
     return actual_numpy_types == expected_dtypes
 
+def _check_pd_df_conforms_to_metadata_data_types(df, table_metadata):
+
+    if not pd_df_conforms_to_metadata_data_types(df, table_metadata):
+        raise ValueError("Your pandas dataframe contains different datatypes to those expected by the metadata")
+
+
+def check_pd_df_exactly_conforms_to_metadata(df, table_metadata):
+
+    if not _pd_df_contains_same_columns_as_metadata(df, table_metadata):
+            raise ValueError("Your pandas dataframe contains different columns to your metadata")
+
+    if not _pd_df_cols_matches_metadata_column_ordered(df, table_metadata):
+        raise ValueError("Your pandas dataframe contains different columns to your metadata")
+
+    if not pd_df_conforms_to_metadata_data_types(df, table_metadata):
+        raise ValueError("Your pandas dataframe contains different datatypes to those expected by the metadata")
+
 
 def impose_metadata_column_order_on_pd_df(df, table_metadata, create_cols_if_not_exist=False, delete_superflous_colums=True):
     """
     Return a dataframe where the column order conforms to the metadata
     Note: This does not check the types match the metadata
     """
-
-    def get_np_datatype_from_metadata(col_name, table_metadata):
-
-        columns_metadata = table_metadata["columns"]
-        with pkg_resources.resource_stream(__name__, "data/data_type_conversion.csv") as io:
-            type_conversion = pd.read_csv(io)
-        type_conversion = type_conversion.set_index("metadata")
-        type_conversion_dict = type_conversion.to_dict(orient="index")
-
-
-        for c in columns_metadata:
-            if c["name"] == col_name:
-                col = c
-        agnostic_type = col["type"]
-        numpy_type = type_conversion_dict[agnostic_type]["pandas"]
-        return np.typeDict[numpy_type]
-
-
     md_cols = [c["name"] for c in table_metadata["columns"]]
     actual_cols = df.columns
 
@@ -155,14 +174,48 @@ def impose_metadata_column_order_on_pd_df(df, table_metadata, create_cols_if_not
         raise ValueError("You create_cols_if_not_exist = False, but there are missing columns in your data")
     else:
         for c in missing_cols:
-            np_type = get_np_datatype_from_metadata(c, table_metadata)
+            np_type = _get_np_datatype_from_metadata(c, table_metadata)
             df[c] = pd.Series(dtype=np_type)
 
     return df[md_cols]
 
 
-def impose_metadata_data_types_on_pd_df():
-    pass
+def impose_metadata_data_types_on_pd_df(df, table_metadata):
+    """
+    Impost correct data type on all columns in metadata.
+    Doesn't modify columns not in metadata
+    """
 
-def impose_exact_conformance_on_pd_df(remove_superfluous_cols=False, create_cols_if_not_exist=False):
-    pass
+    df_cols_set = set(df.columns)
+
+    metadata_date_cols_set = set(_pd_date_parse_list_from_metadatadata(table_metadata))
+    metadata_cols_set = set([c["name"] for c in table_metadata["columns"]])
+
+    # Cols that may need conversion without date cols
+    try_convert_nodate = df_cols_set.intersection(metadata_cols_set) - metadata_date_cols_set
+    try_convert_date = df_cols_set.intersection(metadata_date_cols_set)
+
+    for col in try_convert_nodate:
+        expected_type = _get_np_datatype_from_metadata(col, table_metadata)
+        actual_type = df[col].dtype.type
+
+        if expected_type != actual_type:
+            df[col] = df[col].astype(expected_type)
+
+    for col in try_convert_date:
+        expected_type = np.typeDict["Datetime64"]
+        actual_type = df[col].dtype.type
+
+        if expected_type != actual_type:
+            df[col] = pd.to_datetime(df[col])
+
+    return df
+
+
+def impose_exact_conformance_on_pd_df(df, table_metadata):
+    df = impose_metadata_column_order_on_pd_df(df, table_metadata, delete_superflous_colums=True)
+    df = impose_metadata_data_types_on_pd_df(df, table_metadata)
+    return df
+
+
+
