@@ -89,10 +89,9 @@ def _check_pd_df_cols_matches_metadata_column_ordered(df, table_metadata):
         raise ValueError("Your pandas dataframe contains different columns to your metadata")
 
 
-def pd_df_matches_metadata_data_types(df, table_metadata):
+def pd_df_conforms_to_metadata_data_types(df, table_metadata):
 
     expected_dtypes = _pd_dtype_dict_from_metadata(table_metadata)
-
     date_cols = _pd_date_parse_list_from_metadatadata(table_metadata)
 
     for col in date_cols:
@@ -103,16 +102,67 @@ def pd_df_matches_metadata_data_types(df, table_metadata):
     for dt in actual_numpy_types:
         actual_numpy_types[dt] = actual_numpy_types[dt].type
 
-
     return actual_numpy_types == expected_dtypes
 
 
+def impose_metadata_column_order_on_pd_df(df, table_metadata, create_cols_if_not_exist=False, delete_superflous_colums=True):
+    """
+    Return a dataframe where the column order conforms to the metadata
+    Note: This does not check the types match the metadata
+    """
 
-    pass
+    def get_np_datatype_from_metadata(col_name, table_metadata):
 
-def impose_metadata_column_order_on_pd_df(create_cols_if_not_exist):
-    pass
+        columns_metadata = table_metadata["columns"]
+        with pkg_resources.resource_stream(__name__, "data/data_type_conversion.csv") as io:
+            type_conversion = pd.read_csv(io)
+        type_conversion = type_conversion.set_index("metadata")
+        type_conversion_dict = type_conversion.to_dict(orient="index")
+
+
+        for c in columns_metadata:
+            if c["name"] == col_name:
+                col = c
+        agnostic_type = col["type"]
+        numpy_type = type_conversion_dict[agnostic_type]["pandas"]
+        return np.typeDict[numpy_type]
+
+
+    md_cols = [c["name"] for c in table_metadata["columns"]]
+    actual_cols = df.columns
+
+    md_cols_set = set(md_cols)
+    actual_cols_set = set(actual_cols)
+
+    if len(md_cols) != len(md_cols_set):
+        raise ValueError("You have a duplicated column names in your metadata")
+
+    if len(actual_cols) != len(actual_cols_set):
+        raise ValueError("You have a duplicated column names in your data")
+
+    # Delete superflous columns if option set
+    superflous_cols = actual_cols_set - md_cols_set
+
+    if superflous_cols and not delete_superflous_colums:
+        raise ValueError("You chose delete_superflous_colums = False, but superflous columns were found")
+    else:
+        for c in superflous_cols:
+            del df[c]
+
+    # Create columns if not in data and option is set
+    missing_cols = md_cols_set - actual_cols_set
+    if missing_cols and not create_cols_if_not_exist:
+        raise ValueError("You create_cols_if_not_exist = False, but there are missing columns in your data")
+    else:
+        for c in missing_cols:
+            np_type = get_np_datatype_from_metadata(c, table_metadata)
+            df[c] = pd.Series(dtype=np_type)
+
+    return df[md_cols]
+
 
 def impose_metadata_data_types_on_pd_df():
     pass
 
+def impose_exact_conformance_on_pd_df(remove_superfluous_cols=False, create_cols_if_not_exist=False):
+    pass
