@@ -161,7 +161,6 @@ class ConformanceTest(unittest.TestCase) :
         with self.assertRaises(ValueError):
             df = impose_exact_conformance_on_pd_df(df, table_metadata)
 
-
         df = pd_read_csv_using_metadata(td_path("test_csv_data_valid.csv"), table_metadata)
 
         cols = list(df.columns)
@@ -169,8 +168,14 @@ class ConformanceTest(unittest.TestCase) :
         df = df[cols]
 
         df = impose_exact_conformance_on_pd_df(df, table_metadata)
-
         _check_pd_df_cols_match_metadata_cols_ordered(df, table_metadata)
+        df = pd_read_csv_using_metadata(td_path("test_csv_data_additional_col.csv"), table_metadata)
+        del df["myint"]
+
+        with self.assertRaises(ValueError):
+            df = impose_exact_conformance_on_pd_df(df, table_metadata)
+
+
 
 
 

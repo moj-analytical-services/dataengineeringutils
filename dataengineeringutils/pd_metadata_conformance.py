@@ -174,16 +174,17 @@ def impose_metadata_column_order_on_pd_df(df, table_metadata, create_cols_if_not
     # Delete superflous columns if option set
     superflous_cols = actual_cols_set - md_cols_set
 
-    if superflous_cols and not delete_superflous_colums:
-        raise ValueError("You chose delete_superflous_colums = False, but superflous columns were found")
+    if len(superflous_cols) > 0 and not delete_superflous_colums:
+        raise ValueError(f"You chose delete_superflous_colums = False, but the following superflous columns were found: {superflous_cols}")
     else:
         for c in superflous_cols:
             del df[c]
 
     # Create columns if not in data and option is set
     missing_cols = md_cols_set - actual_cols_set
-    if missing_cols and not create_cols_if_not_exist:
-        raise ValueError("You create_cols_if_not_exist = False, but there are missing columns in your data")
+
+    if len(missing_cols) > 0 and not create_cols_if_not_exist:
+        raise ValueError(f"You create_cols_if_not_exist = False, but the following columns are missing from your data {missing_cols}")
     else:
         for c in missing_cols:
             np_type = _get_np_datatype_from_metadata(c, table_metadata)
