@@ -137,6 +137,15 @@ class ConformanceTest(unittest.TestCase) :
 
         df = impose_metadata_data_types_on_pd_df(df, table_metadata, errors='ignore')
 
+        # Check that floats get converted to ints
+        df = pd.read_csv(td_path("test_csv_data_valid.csv"))
+        df.loc[0, "myint"] = 1.0
+        df.loc[1, "myint"] = 1324.0
+        df.loc[2, "myint"] = 41.0
+        df = impose_metadata_data_types_on_pd_df(df, table_metadata)
+        check_pd_df_exactly_conforms_to_metadata(df, table_metadata)
+        self.assertTrue(type(df.loc[0, "myint"]) == np.typeDict["int64"])
+
 
     def test_impose_exact_conformance_on_pd_df(self):
         table_metadata = read_json_from_path(td_path("test_table_metadata_valid.json"))
