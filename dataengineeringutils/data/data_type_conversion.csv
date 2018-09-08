@@ -6,4 +6,4 @@ boolean,boolean,BooleanType,bool,
 datetime,timestamp,TimestampType,object,you have to specify parse_dates in pandas
 date,date,DateType,object,pandas doesn't really have a datetime type it expects datetimes use parse_dates
 double,double,DoubleType,float,
-long,bigint,LongType,float,pandas doesn't allow nulls in int columns so have to use float
+long,bigint,LongType,int,pandas doesn't allow nulls in int columns so imposing this type will sometimes be problematic.  an upcoming release of pandas 0.24.0 will start supporting ints
