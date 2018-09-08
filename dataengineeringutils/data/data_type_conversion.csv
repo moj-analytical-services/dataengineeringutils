@@ -1,6 +1,6 @@
 metadata,glue,spark,pandas,comment
 character,string,StringType,object,see https://stackoverflow.com/questions/34881079/pandas-distinction-between-str-and-object-types
-int,int,IntegerType,float,pandas doesn't allow nulls in int columns so have to use float
+int,int,IntegerType,int,pandas doesn't allow nulls in int columns so imposing this type will sometimes be problematic.  an upcoming release of pandas 0.24.0 will start supporting ints
 float,float,FloatType,float,
 boolean,boolean,BooleanType,bool,
 datetime,timestamp,TimestampType,object,you have to specify parse_dates in pandas
