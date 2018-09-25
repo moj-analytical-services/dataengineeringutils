@@ -4,6 +4,7 @@ from dataengineeringutils.pd_metadata_conformance import _pd_df_cols_match_metad
 from dataengineeringutils.pd_metadata_conformance import _check_pd_df_cols_match_metadata_cols
 from dataengineeringutils.pd_metadata_conformance import _check_pd_df_cols_match_metadata_cols_ordered
 from dataengineeringutils.pd_metadata_conformance import _check_pd_df_datatypes_match_metadata_data_types
+from dataengineeringutils.pd_metadata_conformance import _remove_paritions_from_table_metadata
 from dataengineeringutils.pd_metadata_conformance import *
 import pandas as pd
 import os
@@ -185,6 +186,9 @@ class ConformanceTest(unittest.TestCase) :
             df = impose_exact_conformance_on_pd_df(df, table_metadata)
 
 
-
-
+    def test_impose_exact_conformance_on_pd_df(self):
+        table_metadata_partitions = read_json_from_path(td_path("test_table_metadata_partition.json"))
+        table_metadata_no_partitions = read_json_from_path(td_path("test_table_metadata_valid.json"))
+        table_metadata_partitions_removed = _remove_paritions_from_table_metadata(table_metadata_partitions)
+        self.assertTrue(table_metadata_no_partitions == table_metadata_partitions_removed)
 

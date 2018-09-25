@@ -3,6 +3,15 @@ import json
 import pandas as pd
 import numpy as np
 
+def _remove_paritions_from_table_metadata(table_metadata):
+
+    if "partitions" in table_metadata:
+        table_metadata["columns"] = [c for c in table_metadata["columns"] if c["name"] not in table_metadata["partitions"]]
+        table_metadata["partitions"] = []
+
+    return table_metadata
+
+
 def _get_np_datatype_from_metadata(col_name, table_metadata):
     """
     Lookup the datatype from the metadata, and our conversion table
@@ -26,7 +35,7 @@ def _get_np_datatype_from_metadata(col_name, table_metadata):
     else:
         return None
 
-def _pd_dtype_dict_from_metadata(table_metadata):
+def _pd_dtype_dict_from_metadata(table_metadata, ignore_partitions=False):
     """
     Convert the table metadata to the dtype dict that needs to be
     passed to the dtype argument of pd.read_csv
@@ -39,11 +48,15 @@ def _pd_dtype_dict_from_metadata(table_metadata):
 
     type_conversion_dict = type_conversion.to_dict(orient="index")
 
-    table_metadata = table_metadata["columns"]
+    table_metadata_columns = table_metadata["columns"]
+
+    if ignore_partitions:
+        table_metadata = _remove_paritions_from_table_metadata(table_metadata)
+
     dtype = {}
     parse_dates = []
 
-    for c in table_metadata:
+    for c in table_metadata_columns:
         colname = c["name"]
         coltype = c["type"]
         coltype = type_conversion_dict[coltype]['pandas']
@@ -69,13 +82,18 @@ def _pd_date_parse_list_from_metadatadata(table_metadata):
 
     return parse_dates
 
-def pd_read_csv_using_metadata(filepath_or_buffer, table_metadata, *args, **kwargs):
+def pd_read_csv_using_metadata(filepath_or_buffer, table_metadata, ignore_partitions=False, *args, **kwargs):
     """
     Use pandas to read a csv imposing the datatypes specified in the table_metadata
 
     Passes through kwargs to pandas.read_csv
+
+    If ignore_partitions=True, assume that partitions are not columns in the dataset
     """
-    dtype = _pd_dtype_dict_from_metadata(table_metadata)
+    if ignore_partitions:
+        table_metadata = _remove_paritions_from_table_metadata(table_metadata)
+
+    dtype = _pd_dtype_dict_from_metadata(table_metadata, ignore_partitions)
     parse_dates = _pd_date_parse_list_from_metadatadata(table_metadata)
 
     return pd.read_csv(filepath_or_buffer, dtype = dtype, parse_dates = parse_dates, *args, **kwargs)
@@ -118,10 +136,13 @@ def _check_pd_df_cols_match_metadata_cols_ordered(df, table_metadata):
         raise ValueError("Your pandas dataframe contains different columns to your metadata")
 
 
-def pd_df_datatypes_match_metadata_data_types(df, table_metadata):
+def pd_df_datatypes_match_metadata_data_types(df, table_metadata, ignore_partitions=False):
+    """
+    Do the data types in the pandas dataframe match those in table_metadata
     """
 
-    """
+    if ignore_partitions:
+        table_metadata = _remove_paritions_from_table_metadata(table_metadata)
 
     expected_dtypes = _pd_dtype_dict_from_metadata(table_metadata)
     date_cols = _pd_date_parse_list_from_metadatadata(table_metadata)
@@ -142,7 +163,10 @@ def _check_pd_df_datatypes_match_metadata_data_types(df, table_metadata):
         raise ValueError("Your pandas dataframe contains different datatypes to those expected by the metadata")
 
 
-def check_pd_df_exactly_conforms_to_metadata(df, table_metadata):
+def check_pd_df_exactly_conforms_to_metadata(df, table_metadata, ignore_partitions=False):
+
+    if ignore_partitions:
+        table_metadata = _remove_paritions_from_table_metadata(table_metadata)
 
     if not _pd_df_cols_match_metadata_cols(df, table_metadata):
             raise ValueError("Your pandas dataframe contains different columns to your metadata")
@@ -154,11 +178,15 @@ def check_pd_df_exactly_conforms_to_metadata(df, table_metadata):
         raise ValueError("Your pandas dataframe contains different datatypes to those expected by the metadata")
 
 
-def impose_metadata_column_order_on_pd_df(df, table_metadata, create_cols_if_not_exist=False, delete_superflous_colums=True):
+def impose_metadata_column_order_on_pd_df(df, table_metadata, create_cols_if_not_exist=False, delete_superflous_colums=True, ignore_partitions=False):
     """
     Return a dataframe where the column order conforms to the metadata
     Note: This does not check the types match the metadata
     """
+
+    if ignore_partitions:
+        table_metadata = _remove_paritions_from_table_metadata(table_metadata)
+
     md_cols = [c["name"] for c in table_metadata["columns"]]
     actual_cols = df.columns
 
@@ -193,7 +221,7 @@ def impose_metadata_column_order_on_pd_df(df, table_metadata, create_cols_if_not
     return df[md_cols]
 
 
-def impose_metadata_data_types_on_pd_df(df, table_metadata, errors='raise'):
+def impose_metadata_data_types_on_pd_df(df, table_metadata, errors='raise', ignore_partitions=False):
     """
     Impost correct data type on all columns in metadata.
     Doesn't modify columns not in metadata
@@ -201,6 +229,10 @@ def impose_metadata_data_types_on_pd_df(df, table_metadata, errors='raise'):
     Allows you to pass arguments through to the astype e.g. to errors = 'ignore'
     https://pandas.pydata.org/pandas-docs/stable/generated/pandas.Series.astype.html
     """
+
+    if ignore_partitions:
+        table_metadata = _remove_paritions_from_table_metadata(table_metadata)
+
 
     df_cols_set = set(df.columns)
 
@@ -228,7 +260,11 @@ def impose_metadata_data_types_on_pd_df(df, table_metadata, errors='raise'):
     return df
 
 
-def impose_exact_conformance_on_pd_df(df, table_metadata):
+def impose_exact_conformance_on_pd_df(df, table_metadata, ignore_partitions=False):
+
+    if ignore_partitions:
+        table_metadata = _remove_paritions_from_table_metadata(table_metadata)
+
     df = impose_metadata_column_order_on_pd_df(df, table_metadata, delete_superflous_colums=True)
     df = impose_metadata_data_types_on_pd_df(df, table_metadata)
     return df
