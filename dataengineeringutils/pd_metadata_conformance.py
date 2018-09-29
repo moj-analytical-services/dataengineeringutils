@@ -233,7 +233,6 @@ def impose_metadata_data_types_on_pd_df(df, table_metadata, errors='raise', igno
     if ignore_partitions:
         table_metadata = _remove_paritions_from_table_metadata(table_metadata)
 
-
     df_cols_set = set(df.columns)
 
     metadata_date_cols_set = set(_pd_date_parse_list_from_metadatadata(table_metadata))
@@ -249,6 +248,9 @@ def impose_metadata_data_types_on_pd_df(df, table_metadata, errors='raise', igno
 
         if expected_type != actual_type:
             df[col] = df[col].astype(expected_type, errors=errors)
+
+        if expected_type == np.typeDict["object"]:
+            df[col] = df[col].to_string()
 
     for col in try_convert_date:
         expected_type = np.typeDict["Datetime64"]
