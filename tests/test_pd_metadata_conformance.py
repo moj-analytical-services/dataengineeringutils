@@ -200,3 +200,24 @@ class ConformanceTest(unittest.TestCase) :
         table_metadata_partitions_removed = _remove_paritions_from_table_metadata(table_metadata_partitions)
         self.assertTrue(table_metadata_no_partitions == table_metadata_partitions_removed)
 
+    def test_mixtype_column_behaves(self):
+        table_metadata = read_json_from_path(td_path("test_table_metadata_mixedtype_col.json"))
+        df = pd_read_csv_using_metadata(td_path("test_csv_data_mixedtype_col.csv"), table_metadata)
+
+        self.assertTrue(list(df["mixedtype"]) == ["hello", "1.2", "1"])
+        self.assertTrue(list(df["mychar"]) == ["a", "hello","hello"])
+
+        df = pd.read_csv(td_path("test_csv_data_mixedtype_col.csv"))
+
+        df = impose_metadata_data_types_on_pd_df(df, table_metadata)
+        self.assertTrue(list(df["mixedtype"]) == ["hello", "1.2", "1"])
+        self.assertTrue(list(df["mychar"]) == ["a", "hello","hello"])
+
+        df = pd.read_csv(td_path("test_csv_data_mixedtype_col.csv"))
+        df.loc[1, "mixedtype"] = 1.3
+        df = impose_metadata_data_types_on_pd_df(df, table_metadata)
+        self.assertTrue(list(df["mixedtype"]) == ["hello", "1.3", "1"])
+
+
+
+
