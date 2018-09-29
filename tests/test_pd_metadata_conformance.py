@@ -147,6 +147,14 @@ class ConformanceTest(unittest.TestCase) :
         check_pd_df_exactly_conforms_to_metadata(df, table_metadata)
         self.assertTrue(type(df.loc[0, "myint"]) == np.typeDict["int64"])
 
+        # Check that a mixed column correctly converts to a string
+        df = pd_read_csv_using_metadata(td_path("test_csv_data_valid.csv"), table_metadata)
+        df.loc[2,"mychar"] = 1.23
+
+        self.assertTrue(type(df.loc[2,"mychar"]) == float)
+        df = impose_metadata_data_types_on_pd_df(df, table_metadata)
+        self.assertTrue(type(df.loc[2,"mychar"]) == str)
+
 
     def test_impose_exact_conformance_on_pd_df(self):
         table_metadata = read_json_from_path(td_path("test_table_metadata_valid.json"))
