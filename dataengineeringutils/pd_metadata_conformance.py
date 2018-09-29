@@ -250,7 +250,7 @@ def impose_metadata_data_types_on_pd_df(df, table_metadata, errors='raise', igno
             df[col] = df[col].astype(expected_type, errors=errors)
 
         if expected_type == np.typeDict["object"]:
-            df[col] = df[col].to_string()
+            df[col] = df[col].astype(str)
 
     for col in try_convert_date:
         expected_type = np.typeDict["Datetime64"]
